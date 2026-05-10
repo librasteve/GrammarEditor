@@ -4,4 +4,20 @@ services:
     container_name: grammar-editor
     ports:
       - "3001:3001"
+    environment:
+      GRAMMAR_WORKER_URL: "http://worker:9000"
+    depends_on:
+      - worker
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: grammar-worker
+    expose:
+      - "9000"
+    mem_limit: 512m
+    environment:
+      GRAMMAR_WORKER_TIMEOUT: "5"
     restart: unless-stopped

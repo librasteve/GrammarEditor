@@ -1,0 +1,14 @@
+FROM rakudo-star:latest
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN zef install --/test Cro::HTTP JSON::Fast
+
+WORKDIR /app
+COPY lib/ lib/
+COPY grammar-worker.raku eval-runner.raku ./
+
+EXPOSE 9000
+
+CMD ["raku", "grammar-worker.raku"]

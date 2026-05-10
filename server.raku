@@ -1,9 +1,53 @@
 use Cro::HTTP::Router;
 use Cro::HTTP::Server;
 use Cro::HTTP::Router::WebSocket;
+use Cro::HTTP::Client;
 use JSON::Fast;
 use lib 'lib';
 use GrammarEngine;
+
+sub log-msg($msg) { $*ERR.say($msg); $*ERR.flush; }
+
+my constant WORKER-URL    = %*ENV<GRAMMAR_WORKER_URL>  // 'http://localhost:9000';
+my constant CACHE-MAX     = 20;
+my @cache-keys;
+my %result-cache;
+
+sub cache-key(Str $grammar, Str $string) {
+    $grammar.subst(/\s+/, ' ').trim ~ "\0" ~ $string
+}
+
+sub delegate-grammar(Str $grammar, Str $string) {
+    my $key = cache-key($grammar, $string);
+    if %result-cache{$key}:exists {
+        log-msg "delegate: cache HIT";
+        return %result-cache{$key};
+    }
+
+    log-msg "delegate: sending to {WORKER-URL}/eval (grammar={$grammar.chars}c string={$string.chars}c)";
+    my $resp = await Cro::HTTP::Client.post(
+        WORKER-URL ~ '/eval',
+        content-type => 'application/json',
+        body => to-json({ :$grammar, :$string }),
+    );
+    log-msg "delegate: response received";
+    my $body = await $resp.body-text;
+    my %result = from-json($body);
+    %result-cache{$key} = %result;
+    @cache-keys.push: $key;
+    if @cache-keys > CACHE-MAX {
+        %result-cache{@cache-keys.shift}:delete;
+    }
+    return %result;
+    CATCH {
+        default {
+            log-msg "delegate: error - {.Str}";
+            my %error = %( error => 'Grammar execution timed out' );
+            %result-cache{$key} = %error;
+            return %error;
+        }
+    }
+}
 
 my $app = route {
     get -> {
@@ -17,8 +61,10 @@ my $app = route {
             supply {
                 whenever $messages -> $msg {
                     my $text = await $msg.body-text;
+                    log-msg "server: received WS message ({$text.chars}c)";
                     my %data = from-json($text);
-                    my %resp = process-grammar(%data<grammar> // '', %data<string> // '');
+                    my %resp = delegate-grammar(%data<grammar> // '', %data<string> // '');
+                    log-msg "server: sending response to browser";
                     emit to-json(%resp);
                 }
             }
