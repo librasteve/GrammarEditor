@@ -13,22 +13,24 @@ my constant CACHE-MAX     = 20;
 my @cache-keys;
 my %result-cache;
 
-sub cache-key(Str $grammar, Str $string) {
-    $grammar.subst(/\s+/, ' ').trim ~ "\0" ~ $string
+sub cache-key(Str $grammar, Str $string, Str $actions = '') {
+    $grammar.subst(/\s+/, ' ').trim ~ "\0" ~ $string ~ "\0" ~ $actions
 }
 
-sub delegate-grammar(Str $grammar, Str $string) {
-    my $key = cache-key($grammar, $string);
+sub delegate-grammar(Str $grammar, Str $string, Str $actions = '') {
+    my $key = cache-key($grammar, $string, $actions);
     if %result-cache{$key}:exists {
         log-msg "delegate: cache HIT";
         return %result-cache{$key};
     }
 
-    log-msg "delegate: sending to {WORKER-URL}/eval (grammar={$grammar.chars}c string={$string.chars}c)";
+    log-msg "delegate: sending to {WORKER-URL}/eval (grammar={$grammar.chars}c string={$string.chars}c actions={$actions.chars}c)";
+    my %body = :$grammar, :$string;
+    %body<actions> = $actions if $actions;
     my $resp = await Cro::HTTP::Client.post(
         WORKER-URL ~ '/eval',
         content-type => 'application/json',
-        body => to-json({ :$grammar, :$string }),
+        body => to-json(%body),
     );
     log-msg "delegate: response received";
     my $body = await $resp.body-text;
@@ -63,7 +65,8 @@ my $app = route {
                     my $text = await $msg.body-text;
                     log-msg "server: received WS message ({$text.chars}c)";
                     my %data = from-json($text);
-                    my %resp = delegate-grammar(%data<grammar> // '', %data<string> // '');
+                    my $actions = %data<actions> // '';
+                    my %resp = delegate-grammar(%data<grammar> // '', %data<string> // '', $actions);
                     log-msg "server: sending response to browser";
                     emit to-json(%resp);
                 }

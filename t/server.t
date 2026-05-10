@@ -2,7 +2,64 @@ use Test;
 use lib 'lib';
 use GrammarEngine;
 
-plan 7;
+plan 11;
+
+subtest 'Actions class: .made value returned as .raku string' => {
+    my $grammar = q:to/END/;
+        unit grammar TestGrammar1;
+        token TOP { <digit>+ }
+        END
+    my $actions = q:to/END/;
+        class TestActions1 {
+            method TOP($/) { make +$/.Str }
+        }
+        END
+    my %result = process-grammar($grammar, '42', $actions);
+    ok %result<made>:exists, 'made field present';
+    is %result<made>, '42', 'integer .raku has no quotes';
+    ok %result<trace>:exists, 'trace still present with actions';
+    ok %result<match>:exists, 'match still present with actions';
+}
+
+subtest 'Actions class: .made is absent when no make() call' => {
+    my $grammar = q:to/END/;
+        unit grammar TestGrammar2;
+        token TOP { <digit>+ }
+        END
+    my $actions = q:to/END/;
+        class NoopActions2 {
+            method TOP($/) { }
+        }
+        END
+    my %result = process-grammar($grammar, '42', $actions);
+    nok %result<made>:exists, 'no made field when no make() call';
+    ok %result<match>:exists, 'match still present';
+}
+
+subtest 'Actions class: invalid actions code returns error' => {
+    my $grammar = q:to/END/;
+        unit grammar TestGrammar3;
+        token TOP { <digit>+ }
+        END
+    my $actions = q:to/END/;
+        class BrokenActions3 {
+            method TOP($/) { $¢ø }
+        }
+        END
+    my %result = process-grammar($grammar, '42', $actions);
+    ok %result<error>:exists, 'error field present for invalid actions';
+}
+
+subtest 'Actions class: no actions behaves same as before' => {
+    my $grammar = q:to/END/;
+        unit grammar TestGrammar4;
+        token TOP { <digit>+ }
+        END
+    my %result = process-grammar($grammar, '42');
+    ok %result<trace>:exists, 'trace present without actions';
+    ok %result<match>:exists, 'match present without actions';
+    nok %result<made>:exists, 'no made field when actions not provided';
+}
 
 subtest 'Valid grammar compiles and parses' => {
     my %result = process-grammar('token TOP { <digit>+ }', '123');

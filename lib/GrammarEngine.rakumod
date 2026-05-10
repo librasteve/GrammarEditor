@@ -2,7 +2,7 @@ use JSON::Fast;
 
 unit module GrammarEngine;
 
-sub process-grammar(Str $code, Str $string) returns Hash is export {
+sub process-grammar(Str $code, Str $string, Str $actions?) returns Hash is export {
     CATCH {
         default {
             return %( error => .Str )
@@ -10,6 +10,11 @@ sub process-grammar(Str $code, Str $string) returns Hash is export {
     }
 
     my $grammar = $code.EVAL;
+
+    my $actions-obj;
+    if $actions.defined && $actions.trim {
+        $actions-obj = $actions.EVAL.new;
+    }
 
     my @methods = $grammar.^methods.grep({ .WHAT ~~ Regex });
     my $count = 0;
@@ -40,13 +45,17 @@ sub process-grammar(Str $code, Str $string) returns Hash is export {
     my %result;
     with $string {
         my @*CHILDREN := my @children;
-        my $match = $grammar.parse: $string;
+        my $match = $actions-obj.defined
+            ?? $grammar.parse($string, :actions($actions-obj))
+            !! $grammar.parse($string);
         with @children.head -> %tree {
             %tree<match> = False unless $match;
             %result<trace> = %tree;
         }
         if $match {
             %result<match> = serialize-match($match);
+            my $made = $match.made;
+            %result<made> = $made.raku if $made.defined;
         }
     }
 

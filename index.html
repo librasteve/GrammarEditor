@@ -47,39 +47,45 @@
             display: flex;
             flex-direction: column;
             gap: 2px;
+            overflow: hidden;
         }
 
         #right-half {
             flex: 1;
             min-width: 0;
             display: flex;
+            flex-direction: column;
             gap: 2px;
+            overflow: hidden;
         }
 
         #right-half.hidden {
             display: none;
         }
 
-        #right-half>.panel {
-            flex: 0 0 50%;
-        }
-
-        #right-half.single>.panel:not(.collapsed) {
+        #right-top-row {
             flex: 1;
-        }
-
-        #left-half {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            overflow: hidden;
-        }
-
-        #right-half {
+            min-height: 0;
             display: flex;
             flex-direction: row;
             gap: 2px;
             overflow: hidden;
+        }
+
+        #right-top-row>.panel {
+            flex: 0 0 50%;
+        }
+
+        #right-top-row.single>.panel:not(.collapsed) {
+            flex: 1;
+        }
+
+        #made-panel {
+            flex: 0 0 25%;
+        }
+
+        #made-panel.collapsed {
+            display: none;
         }
 
         .panel {
@@ -528,6 +534,16 @@
                 <span class="toggle-icon">👁</span>
                 <span>Match</span>
             </label>
+            <label class="panel-toggle" data-panel="actions">
+                <input type="checkbox">
+                <span class="toggle-icon">👁</span>
+                <span>Actions</span>
+            </label>
+            <label class="panel-toggle" data-panel="made">
+                <input type="checkbox">
+                <span class="toggle-icon">👁</span>
+                <span>Made</span>
+            </label>
             <span class="toolbar-spacer"></span>
             <button class="toolbar-btn" id="btn-share" title="Copy shareable URL">🔗 Share</button>
         </div>
@@ -551,6 +567,18 @@
                     </div>
                 </div>
 
+                <div class="panel collapsed" id="actions-panel">
+                    <div class="panel-header">
+                        <span>Actions</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="editor-container">
+                            <textarea id="actions-code" spellcheck="false" placeholder="class MyActions { ... }"></textarea>
+                            <pre id="actions-highlight"><code id="actions-highlight-output"></code></pre>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="panel" id="string-panel">
                     <div class="panel-header">
                         <span>String</span>
@@ -569,14 +597,21 @@
                 </div>
             </div>
             <div id="right-half">
-                <div class="panel" id="trace-panel">
-                    <div class="panel-header">Trace</div>
-                    <div class="panel-body" id="trace-body"></div>
+                <div id="right-top-row">
+                    <div class="panel" id="trace-panel">
+                        <div class="panel-header">Trace</div>
+                        <div class="panel-body" id="trace-body"></div>
+                    </div>
+
+                    <div class="panel" id="match-panel">
+                        <div class="panel-header">Match</div>
+                        <div class="panel-body" id="match-body"></div>
+                    </div>
                 </div>
 
-                <div class="panel" id="match-panel">
-                    <div class="panel-header">Match</div>
-                    <div class="panel-body" id="match-body"></div>
+                <div class="panel collapsed" id="made-panel">
+                    <div class="panel-header">Made</div>
+                    <div class="panel-body" id="made-body"></div>
                 </div>
             </div>
         </div>
@@ -1034,6 +1069,28 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         }
 
         // ============================================================
+        // Made Rendering
+        // ============================================================
+        function renderMade(made) {
+            var body = document.getElementById('made-body');
+            body.innerHTML = '';
+            var pre = document.createElement('pre');
+            pre.style.padding = '10px';
+            pre.style.margin = '0';
+            pre.style.fontSize = '13px';
+            pre.style.lineHeight = '1.5';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.wordBreak = 'break-all';
+            pre.style.color = '#a6e3a1';
+            pre.textContent = made;
+            body.appendChild(pre);
+        }
+
+        function clearMade() {
+            document.getElementById('made-body').innerHTML = '';
+        }
+
+        // ============================================================
         // Error Display
         // ============================================================
         function showError(msg) {
@@ -1042,6 +1099,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             bar.className = 'visible';
             clearTrace();
             clearMatch();
+            clearMade();
         }
 
         function hideError() {
@@ -1119,10 +1177,13 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
 
         function sendGrammar() {
             const grammar = document.getElementById('grammar-code').value;
+            const actions = document.getElementById('actions-code').value;
             const string = document.getElementById('string-input').value;
             currentGrammar = grammar;
             currentString = string;
-            sendMessage({grammar, string});
+            var msg = {grammar, string};
+            if (actions) msg.actions = actions;
+            sendMessage(msg);
         }
 
         function handleResponse(data) {
@@ -1135,6 +1196,8 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             else clearTrace();
             if (data.match) renderMatch(data.match);
             else clearMatch();
+            if (data.hasOwnProperty('made')) renderMade(data.made);
+            else clearMade();
         }
 
         // ============================================================
@@ -1364,15 +1427,24 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         // Event Setup
         // ============================================================
         const grammarInput = document.getElementById('grammar-code');
+        const actionsInput = document.getElementById('actions-code');
         const stringInput = document.getElementById('string-input');
         const highlightOutput = document.getElementById('highlight-output');
+        const actionsHighlightOutput = document.getElementById('actions-highlight-output');
 
         function updateHighlight() {
             const code = grammarInput.value;
             highlightOutput.innerHTML = highlightRaku(code);
+            const actionsCode = actionsInput.value;
+            actionsHighlightOutput.innerHTML = highlightRaku(actionsCode);
         }
 
         grammarInput.addEventListener('input', () => {
+            updateHighlight();
+            debouncedSend();
+        });
+
+        actionsInput.addEventListener('input', () => {
             updateHighlight();
             debouncedSend();
         });
@@ -1385,45 +1457,72 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             pre.scrollLeft = grammarInput.scrollLeft;
         });
 
+        actionsInput.addEventListener('scroll', () => {
+            const pre = document.getElementById('actions-highlight');
+            pre.scrollTop = actionsInput.scrollTop;
+            pre.scrollLeft = actionsInput.scrollLeft;
+        });
+
         // Tab handling
-        grammarInput.addEventListener('keydown', (e) => {
+        function handleTabKey(e, input, afterEdit) {
             if (e.key === 'Tab') {
                 e.preventDefault();
-                const start = grammarInput.selectionStart;
-                const end = grammarInput.selectionEnd;
-                grammarInput.value = grammarInput.value.substring(0, start) + '\t' + grammarInput.value.substring(end);
-                grammarInput.selectionStart = grammarInput.selectionEnd = start + 1;
-                updateHighlight();
-                debouncedSend();
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                input.value = input.value.substring(0, start) + '\t' + input.value.substring(end);
+                input.selectionStart = input.selectionEnd = start + 1;
+                if (afterEdit) afterEdit();
             }
             if ((e.key === 'Enter' && e.ctrlKey) || (e.key === 'Enter' && e.metaKey)) {
                 e.preventDefault();
                 sendGrammar();
             }
+        }
+
+        grammarInput.addEventListener('keydown', (e) => {
+            handleTabKey(e, grammarInput, () => { updateHighlight(); debouncedSend(); });
+        });
+
+        actionsInput.addEventListener('keydown', (e) => {
+            handleTabKey(e, actionsInput, () => { updateHighlight(); debouncedSend(); });
         });
 
         // Panel toggles
         function updateRightHalf() {
             var trace = document.getElementById('trace-panel');
             var match = document.getElementById('match-panel');
+            var made = document.getElementById('made-panel');
             var rightHalf = document.getElementById('right-half');
+            var rightTopRow = document.getElementById('right-top-row');
             var leftHalf = document.getElementById('left-half');
 
-            var visible = 0;
-            if (!trace.classList.contains('collapsed')) visible++;
-            if (!match.classList.contains('collapsed')) visible++;
+            var anyVisible = 0;
+            if (!trace.classList.contains('collapsed')) anyVisible++;
+            if (!match.classList.contains('collapsed')) anyVisible++;
+            if (!made.classList.contains('collapsed')) anyVisible++;
 
-            if (visible === 0) {
+            if (anyVisible === 0) {
                 rightHalf.classList.add('hidden');
                 leftHalf.style.flex = '1';
-            } else if (visible === 1) {
-                rightHalf.classList.remove('hidden');
-                rightHalf.classList.add('single');
-                rightHalf.style.flex = '1';
+                return;
+            }
+            rightHalf.classList.remove('hidden');
+            rightHalf.style.flex = '1';
+            leftHalf.style.flex = '1';
+
+            var topVisible = 0;
+            if (!trace.classList.contains('collapsed')) topVisible++;
+            if (!match.classList.contains('collapsed')) topVisible++;
+
+            if (topVisible === 0) {
+                rightTopRow.style.display = 'none';
             } else {
-                rightHalf.classList.remove('hidden', 'single');
-                rightHalf.style.flex = '1';
-                leftHalf.style.flex = '1';
+                rightTopRow.style.display = '';
+                if (topVisible === 1) {
+                    rightTopRow.classList.add('single');
+                } else {
+                    rightTopRow.classList.remove('single');
+                }
             }
         }
 

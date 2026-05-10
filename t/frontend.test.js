@@ -9,6 +9,8 @@ import {
   clearStringHighlights,
   renderMatch,
   clearMatch,
+  renderMade,
+  clearMade,
   showError,
   hideError,
   getNodeColor,
@@ -21,12 +23,15 @@ function setupDOM() {
   document.body.innerHTML = `
     <div id="trace-body"></div>
     <div id="match-body"></div>
+    <div id="made-body"></div>
     <div id="string-highlights"></div>
     <div id="error-bar"></div>
     <div id="status-bar"></div>
     <textarea id="string-input"></textarea>
     <textarea id="grammar-code"></textarea>
     <pre id="grammar-highlight"><code id="highlight-output"></code></pre>
+    <textarea id="actions-code"></textarea>
+    <pre id="actions-highlight"><code id="actions-highlight-output"></code></pre>
   `;
 }
 
@@ -286,6 +291,29 @@ describe('clearMatch', () => {
     document.getElementById('match-body').innerHTML = '<div>match content</div>';
     clearMatch();
     expect(document.getElementById('match-body').innerHTML).toBe('');
+  });
+});
+
+describe('renderMade / clearMade', () => {
+  beforeEach(() => setupDOM());
+
+  test('renderMade displays string directly', () => {
+    renderMade('42');
+    const body = document.getElementById('made-body');
+    expect(body.textContent).toBe('42');
+  });
+
+  test('renderMade displays .raku representation', () => {
+    renderMade('[:digit(1), :digit(2)]');
+    const body = document.getElementById('made-body');
+    expect(body.textContent).toBe('[:digit(1), :digit(2)]');
+    expect(body.querySelector('pre').style.color).toBe('#a6e3a1');
+  });
+
+  test('clearMade empties the made body', () => {
+    renderMade('test');
+    clearMade();
+    expect(document.getElementById('made-body').innerHTML).toBe('');
   });
 });
 

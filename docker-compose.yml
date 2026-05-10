@@ -17,7 +17,7 @@ services:
     container_name: grammar-worker
     expose:
       - "9000"
-    mem_limit: 2048m
+    mem_limit: 8182m
     environment:
       GRAMMAR_WORKER_TIMEOUT: "5"
     restart: unless-stopped

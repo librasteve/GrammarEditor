@@ -411,12 +411,33 @@ export function clearMatch() {
     matchPosMap = new Map();
 }
 
+export function renderMade(made) {
+    const body = document.getElementById('made-body');
+    body.innerHTML = '';
+    const pre = document.createElement('pre');
+    pre.style.padding = '10px';
+    pre.style.margin = '0';
+    pre.style.fontSize = '13px';
+    pre.style.lineHeight = '1.5';
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.wordBreak = 'break-all';
+    pre.style.color = '#a6e3a1';
+    pre.textContent = made;
+    body.appendChild(pre);
+}
+
+export function clearMade() {
+    const body = document.getElementById('made-body');
+    if (body) body.innerHTML = '';
+}
+
 export function showError(msg) {
     const bar = document.getElementById('error-bar');
     bar.textContent = msg;
     bar.className = 'visible';
     clearTrace();
     clearMatch();
+    clearMade();
 }
 
 export function hideError() {
