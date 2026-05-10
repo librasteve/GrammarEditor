@@ -3,10 +3,29 @@ use Cro::HTTP::Server;
 use Cro::HTTP::Router::WebSocket;
 use Cro::HTTP::Client;
 use JSON::Fast;
+use Digest::SHA1::Native;
+use Red:api<2>;
 use lib 'lib';
 use GrammarEngine;
 
 sub log-msg($msg) { $*ERR.say($msg); $*ERR.flush; }
+
+model GrammarSnapshot is table('grammar_snapshots') {
+    has Str $.id            is column{ :primary-key };
+    has Str $.grammar_code  is column{ :nullable };
+    has Str $.string_input  is column{ :nullable };
+    has Str $.actions_code  is column{ :nullable };
+    has Str $.state         is column{ :nullable };
+}
+
+# SQLite grammar snapshot store
+my $db-path = %*ENV<GRAMMAR_SNAPSHOTS_DB> // 'grammar-snapshots.sqlite3';
+my $red-db = database 'SQLite', :database($db-path);
+log-msg "Grammar snapshot DB: $db-path";
+
+sub compute-snapshot-id(Str $grammar, Str $string, Str $actions = '', Str $state = '') {
+    sha1-hex($grammar ~ "\0" ~ $string ~ "\0" ~ $actions ~ "\0" ~ $state)
+}
 
 my constant WORKER-URL    = %*ENV<GRAMMAR_WORKER_URL>  // 'http://localhost:9000';
 my constant CACHE-MAX     = 20;
@@ -51,13 +70,54 @@ sub delegate-grammar(Str $grammar, Str $string, Str $actions = '') {
     }
 }
 
-my $app = route {
-    get -> {
-        my $path = $*PROGRAM.parent.child('index.html');
-        my $html = slurp($path);
-        content 'text/html', $html;
+my $api-routes = route {
+    # Store a grammar snapshot
+    post -> '_store' {
+        my $body-text = await request.body-text;
+        my $*RED-DB = $red-db;
+        my %data = from-json($body-text);
+        my $grammar   = %data<grammar_code>  // '';
+        my $string    = %data<string_input>  // '';
+        my $actions   = %data<actions_code>  // '';
+        my $state     = %data<state>         // '';
+        my $id = compute-snapshot-id($grammar, $string, $actions, $state);
+        unless GrammarSnapshot.^find(:$id) {
+            GrammarSnapshot.^create: |%(
+                id           => $id,
+                grammar_code => $grammar,
+                string_input => $string,
+                actions_code => $actions,
+                state        => $state,
+            );
+            log-msg "store: created snapshot $id";
+        }
+        content 'application/json', to-json({ id => $id });
+        CATCH {
+            default {
+                log-msg "store: error - {.Str}";
+                content 'application/json', to-json({ error => .Str });
+            }
+        }
     }
 
+    # Retrieve a grammar snapshot
+    get -> '_store', $id {
+        my $*RED-DB = $red-db;
+        with GrammarSnapshot.^find(:$id) -> $snap {
+            my %snap = %(
+                grammar_code => $snap.grammar_code,
+                string_input => $snap.string_input,
+                actions_code => $snap.actions_code,
+            );
+            %snap<state> = $snap.state if $snap.state;
+            content 'application/json', to-json(%snap);
+        } else {
+            not-found;
+        }
+    }
+}
+
+my $ws-routes = route {
     get -> 'ws' {
         web-socket -> $messages {
             supply {
@@ -72,6 +132,23 @@ my $app = route {
                 }
             }
         }
+    }
+}
+
+my $app = route {
+    include $api-routes;
+    include $ws-routes;
+
+    # Root path: serve index.html
+    get -> {
+        my $html = slurp($*PROGRAM.parent.child('index.html'));
+        content 'text/html', $html;
+    }
+
+    # SHA1 path: serve index.html so the frontend can load the snapshot
+    get -> Str $id where /^<[0..9 a..f]>**40$/ {
+        my $html = slurp($*PROGRAM.parent.child('index.html'));
+        content 'text/html', $html;
     }
 }
 

@@ -6,6 +6,9 @@ services:
       - "3001:3001"
     environment:
       GRAMMAR_WORKER_URL: "http://worker:9000"
+      GRAMMAR_SNAPSHOTS_DB: "/data/grammar-snapshots.sqlite3"
+    volumes:
+      - grammar-snapshots:/data
     depends_on:
       - worker
     restart: unless-stopped
@@ -21,3 +24,6 @@ services:
     environment:
       GRAMMAR_WORKER_TIMEOUT: "5"
     restart: unless-stopped
+
+volumes:
+  grammar-snapshots:

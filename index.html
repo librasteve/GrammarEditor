@@ -1346,73 +1346,6 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         // ============================================================
         // URL Sharing
         // ============================================================
-        function uint8ToBase64(bytes) {
-            let binary = '';
-            for (let i = 0; i < bytes.length; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-        }
-
-        function base64ToUint8(str) {
-            const binary = atob(str);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return bytes;
-        }
-
-        function buildShareUrlSync() {
-            const g = btoa(encodeURIComponent(grammarInput.value));
-            const s = btoa(encodeURIComponent(stringInput.value));
-            const a = actionsInput.value ? btoa(encodeURIComponent(actionsInput.value)) : '';
-            const url = new URL(window.location.href);
-            url.search = '?g=' + encodeURIComponent(g) + '&s=' + encodeURIComponent(s);
-            if (a) url.search += '&a=' + encodeURIComponent(a);
-            return url.href;
-        }
-
-        async function compressEncode(str) {
-            const bytes = new TextEncoder().encode(str);
-            if (typeof CompressionStream !== 'undefined') {
-                try {
-                    const compressed = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
-                    const buf = await new Response(compressed).arrayBuffer();
-                    return uint8ToBase64(new Uint8Array(buf));
-                } catch {}
-            }
-            return btoa(encodeURIComponent(str));
-        }
-
-        async function decompressDecode(str) {
-            if (typeof DecompressionStream !== 'undefined') {
-                try {
-                    const bytes = base64ToUint8(str);
-                    const decompressed = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-                    const buf = await new Response(decompressed).arrayBuffer();
-                    return new TextDecoder().decode(buf);
-                } catch {}
-            }
-            try {
-                return decodeURIComponent(atob(str));
-            } catch {
-                return null;
-            }
-        }
-
-        async function getShareUrl() {
-            const [g, s, a] = await Promise.all([
-                compressEncode(grammarInput.value),
-                compressEncode(stringInput.value),
-                actionsInput.value ? compressEncode(actionsInput.value) : ''
-            ]);
-            const url = new URL(window.location.href);
-            url.search = '?g=' + encodeURIComponent(g) + '&s=' + encodeURIComponent(s);
-            if (a) url.search += '&a=' + encodeURIComponent(a);
-            return url.href;
-        }
-
         function fallbackCopy(text) {
             const ta = document.createElement('textarea');
             ta.value = text;
@@ -1434,63 +1367,169 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             }, 2000);
         }
 
-        async function copyShareUrl() {
-            if (!window.isSecureContext) {
-                // HTTP: sync path — no async boundary, so execCommand keeps the user gesture
-                fallbackCopy(buildShareUrlSync());
-                showCopied();
-                return;
+        function capturePaneState() {
+            const vis = {};
+            document.querySelectorAll('.panel-toggle input').forEach(function (cb) {
+                var toggle = cb.closest('.panel-toggle');
+                vis[toggle.dataset.panel] = cb.checked;
+            });
+
+            function getFlex(el) {
+                if (!el || el.classList.contains('collapsed') || getComputedStyle(el).display === 'none') return null;
+                var flex = el.style.flex;
+                if (flex) return parseFloat(flex);
+                return null;
             }
-            // HTTPS/localhost: compression + clipboard API
-            let url;
+
+            var sizes = {};
+            var lh = document.getElementById('left-half');
+            var rh = document.getElementById('right-half');
+            var lf = getFlex(lh);
+            var rf = getFlex(rh);
+            if (lf != null && rf != null) sizes.leftRight = lf / (lf + rf);
+
+            var lp = {};
+            var gp = document.getElementById('grammar-panel');
+            var ap = document.getElementById('actions-panel');
+            var sp = document.getElementById('string-panel');
+            var gpf = getFlex(gp);
+            var apf = getFlex(ap);
+            var spf = getFlex(sp);
+            var total = 0;
+            if (gpf != null) { lp.grammar = gpf; total += gpf; }
+            if (apf != null) { lp.actions = apf; total += apf; }
+            if (spf != null) { lp.string = spf; total += spf; }
+            if (total > 0 && Object.keys(lp).length > 1) {
+                for (var k in lp) lp[k] /= total;
+            }
+            if (Object.keys(lp).length > 0) sizes.leftPanels = lp;
+
+            var rp = {};
+            var tp = document.getElementById('trace-panel');
+            var mp = document.getElementById('match-panel');
+            var tpf = getFlex(tp);
+            var mpf = getFlex(mp);
+            var rtotal = 0;
+            if (tpf != null) { rp.trace = tpf; rtotal += tpf; }
+            if (mpf != null) { rp.match = mpf; rtotal += mpf; }
+            if (rtotal > 0 && Object.keys(rp).length > 1) {
+                for (var k in rp) rp[k] /= rtotal;
+            }
+            if (Object.keys(rp).length > 0) sizes.rightPanels = rp;
+
+            var made = document.getElementById('made-panel');
+            var madef = getFlex(made);
+            if (madef != null) sizes.made = madef;
+
+            return { panelVisibility: vis, panelSizes: sizes };
+        }
+
+        async function copyShareUrl() {
+            var grammar = grammarInput.value;
+            var string = stringInput.value;
+            var actions = actionsInput.value;
+            function sortJsonKeys(key, val) {
+                if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+                    return Object.keys(val).sort().reduce(function (acc, k) { acc[k] = val[k]; return acc; }, {});
+                }
+                return val;
+            }
+            var state = JSON.stringify(capturePaneState(), sortJsonKeys);
+
             try {
-                url = await getShareUrl();
-                await navigator.clipboard.writeText(url);
+                var resp = await fetch('/_store', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ grammar_code: grammar, string_input: string, actions_code: actions, state: state })
+                });
+                var data = await resp.json();
+                var url = window.location.origin + '/' + data.id;
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(url);
+                } else {
+                    fallbackCopy(url);
+                }
             } catch {
-                if (url) fallbackCopy(url);
+                fallbackCopy(window.location.href);
             }
             showCopied();
         }
 
-        async function loadFromUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            const g = params.get('g');
-            const s = params.get('s');
-            const a = params.get('a');
-            let changed = false;
-            if (g != null) {
-                const decoded = await decompressDecode(g);
-                if (decoded != null) {
-                    grammarInput.value = decoded;
-                    changed = true;
+        async function loadFromPath() {
+            var match = window.location.pathname.match(/^\/([0-9a-f]{40})$/);
+            if (!match) return false;
+            var id = match[1];
+            try {
+                var resp = await fetch('/_store/' + id);
+                if (!resp.ok) return false;
+                var data = await resp.json();
+                grammarInput.value = data.grammar_code || '';
+                stringInput.value = data.string_input || '';
+                actionsInput.value = data.actions_code || '';
+                if (data.state) {
+                    restorePaneState(JSON.parse(data.state));
+                } else {
+                    if (data.actions_code) {
+                        document.getElementById('actions-panel').classList.remove('collapsed');
+                        document.getElementById('made-panel').classList.remove('collapsed');
+                        var at = document.querySelector('.panel-toggle[data-panel="actions"] input');
+                        var mt = document.querySelector('.panel-toggle[data-panel="made"] input');
+                        if (at) at.checked = true;
+                        if (mt) mt.checked = true;
+                        updateRightHalf();
+                    }
                 }
-            }
-            if (s != null) {
-                const decoded = await decompressDecode(s);
-                if (decoded != null) {
-                    stringInput.value = decoded;
-                    changed = true;
-                }
-            }
-            if (a != null) {
-                const decoded = await decompressDecode(a);
-                if (decoded != null) {
-                    actionsInput.value = decoded;
-                    changed = true;
-                    // Auto-show Actions and Made panels
-                    document.getElementById('actions-panel').classList.remove('collapsed');
-                    document.getElementById('made-panel').classList.remove('collapsed');
-                    var actionsToggle = document.querySelector('.panel-toggle[data-panel="actions"] input');
-                    var madeToggle = document.querySelector('.panel-toggle[data-panel="made"] input');
-                    if (actionsToggle) actionsToggle.checked = true;
-                    if (madeToggle) madeToggle.checked = true;
-                    updateRightHalf();
-                }
-            }
-            if (changed) {
                 updateHighlight();
                 setTimeout(sendGrammar, 500);
+                return true;
+            } catch {
+                return false;
             }
+        }
+
+        function restorePaneState(state) {
+            if (state.panelVisibility) {
+                Object.keys(state.panelVisibility).forEach(function (panel) {
+                    var visible = state.panelVisibility[panel];
+                    var panelEl = document.getElementById(panel + '-panel');
+                    if (panelEl) {
+                        panelEl.classList.toggle('collapsed', !visible);
+                    }
+                    var toggle = document.querySelector('.panel-toggle[data-panel="' + panel + '"] input');
+                    if (toggle) toggle.checked = visible;
+                });
+            }
+
+            if (state.panelSizes) {
+                var s = state.panelSizes;
+                if (s.leftRight != null) {
+                    var lh = document.getElementById('left-half');
+                    var rh = document.getElementById('right-half');
+                    if (lh) lh.style.flex = s.leftRight.toFixed(4);
+                    if (rh) rh.style.flex = (1 - s.leftRight).toFixed(4);
+                }
+                if (s.leftPanels) {
+                    var gp = document.getElementById('grammar-panel');
+                    var ap = document.getElementById('actions-panel');
+                    var sp = document.getElementById('string-panel');
+                    if (s.leftPanels.grammar != null && gp) gp.style.flex = s.leftPanels.grammar.toFixed(4);
+                    if (s.leftPanels.actions != null && ap) ap.style.flex = s.leftPanels.actions.toFixed(4);
+                    if (s.leftPanels.string != null && sp) sp.style.flex = s.leftPanels.string.toFixed(4);
+                }
+                if (s.rightPanels) {
+                    var tp = document.getElementById('trace-panel');
+                    var mp = document.getElementById('match-panel');
+                    if (s.rightPanels.trace != null && tp) tp.style.flex = s.rightPanels.trace.toFixed(4);
+                    if (s.rightPanels.match != null && mp) mp.style.flex = s.rightPanels.match.toFixed(4);
+                }
+                if (s.made != null) {
+                    var made = document.getElementById('made-panel');
+                    if (made) made.style.flex = s.made.toFixed(4);
+                }
+            }
+
+            updateRightHalf();
+            setupResizeHandles();
         }
 
         // ============================================================
@@ -1711,10 +1750,17 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         // Share button handler
         document.getElementById('btn-share').addEventListener('click', copyShareUrl);
 
-        // Initial load
-        const hasParams = new URLSearchParams(window.location.search).has('g') || new URLSearchParams(window.location.search).has('s') || new URLSearchParams(window.location.search).has('a');
-        if (hasParams) {
-            loadFromUrlParams().then();
+        // Initial load — check for SHA1 path segment first
+        var pathMatch = window.location.pathname.match(/^\/([0-9a-f]{40})$/);
+        if (pathMatch) {
+            loadFromPath().then(function (ok) {
+                if (!ok) {
+                    grammarInput.value = GRAMMAR_DEFAULT;
+                    stringInput.value = STRING_DEFAULT;
+                    updateHighlight();
+                    setTimeout(sendGrammar, 500);
+                }
+            });
         } else {
             grammarInput.value = GRAMMAR_DEFAULT;
             stringInput.value = STRING_DEFAULT;
