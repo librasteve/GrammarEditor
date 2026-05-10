@@ -58,6 +58,9 @@ body {
 }
 
 .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 600;
@@ -67,6 +70,28 @@ body {
     color: #a6adc8;
     border-bottom: 1px solid #313244;
     user-select: none;
+}
+
+.panel-header-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.panel-header-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    color: #a6adc8;
+    transition: background 0.15s, color 0.15s;
+}
+
+.panel-header-btn:hover {
+    background: #313244;
+    color: #cdd6f4;
 }
 
 #panel-toggles {
@@ -356,7 +381,13 @@ body {
     <div id="panel-area">
         <div id="left-half">
             <div class="panel" id="grammar-panel">
-                <div class="panel-header">Grammar</div>
+                <div class="panel-header">
+                    <span>Grammar</span>
+                    <div class="panel-header-btns">
+                        <button class="panel-header-btn" data-action="save-grammar" title="Save as .raku">💾</button>
+                        <button class="panel-header-btn" data-action="open-grammar" title="Open .raku file">📂</button>
+                    </div>
+                </div>
                 <div class="panel-body">
                     <div class="editor-container">
                         <textarea id="grammar-code" spellcheck="false" autofocus></textarea>
@@ -366,7 +397,13 @@ body {
             </div>
 
             <div class="panel" id="string-panel">
-                <div class="panel-header">String</div>
+                <div class="panel-header">
+                    <span>String</span>
+                    <div class="panel-header-btns">
+                        <button class="panel-header-btn" data-action="save-string" title="Save as .txt">💾</button>
+                        <button class="panel-header-btn" data-action="open-string" title="Open .txt file">📂</button>
+                    </div>
+                </div>
                 <div class="panel-body">
                     <div class="editor-container">
                         <textarea id="string-input" spellcheck="false"></textarea>
@@ -388,6 +425,9 @@ body {
         </div>
     </div>
 </div>
+
+<input type="file" id="grammar-file-input" accept=".rakumod,.raku,.grammar" style="display:none">
+<input type="file" id="string-file-input" accept=".txt" style="display:none">
 
 <div id="status-bar">Disconnected</div>
 <div id="error-bar"></div>
@@ -940,6 +980,127 @@ function handleResponse(data) {
 }
 
 // ============================================================
+// File Save / Open
+// ============================================================
+function extractGrammarName(code) {
+    const m = code.match(/^\s*(?:token|rule|regex|method)\s+(\w+)/m);
+    if (m) return m[1];
+    const g = code.match(/^\s*grammar\s+(\w+)/m);
+    if (g) return g[1];
+    return null;
+}
+
+function stripGrammarWrapper(code) {
+    const trimmed = code.trim();
+    let body;
+    if (/^unit\s+grammar\s+\w+\s*;/.test(trimmed)) {
+        body = trimmed.replace(/^unit\s+grammar\s+\w+\s*;?\s*\n?/, '');
+    } else {
+        const lines = trimmed.split('\n');
+        const firstLine = lines[0].trim();
+        const lastLine = lines[lines.length - 1].trim();
+        if (/^grammar\s+\w+\s*\{$/.test(firstLine) && lastLine === '}') {
+            body = lines.slice(1, -1).join('\n');
+        } else {
+            return code;
+        }
+    }
+    const allLines = body.split('\n');
+    const indent = allLines.reduce((min, line) => {
+        if (line.trim() === '') return min;
+        const m = line.match(/^[ \t]*/);
+        return Math.min(min, m[0].length);
+    }, Infinity);
+    if (indent > 0 && indent < Infinity) {
+        return allLines.map(line => line.slice(indent)).join('\n').trim();
+    }
+    return body.trim();
+}
+
+async function saveFileAs(content, suggestedName, fallbackName) {
+    const blob = new Blob([content], { type: 'text/plain' });
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({ suggestedName });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+        }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fallbackName || suggestedName;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function openFileViaInput(inputId) {
+    return new Promise(resolve => {
+        const input = document.getElementById(inputId);
+        input.value = '';
+        const handler = function () {
+            input.removeEventListener('change', handler);
+            const file = input.files[0];
+            if (!file) { resolve(null); return; }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsText(file);
+        };
+        input.addEventListener('change', handler);
+        input.click();
+    });
+}
+
+async function pickAndReadFile(accept, inputId) {
+    if ('showOpenFilePicker' in window) {
+        try {
+            const [handle] = await window.showOpenFilePicker({
+                types: [{ description: 'Files', accept: { 'text/plain': accept } }],
+                multiple: false
+            });
+            const file = await handle.getFile();
+            return await file.text();
+        } catch (e) {
+            if (e.name === 'AbortError') return null;
+        }
+    }
+    return openFileViaInput(inputId);
+}
+
+async function saveGrammar() {
+    const code = grammarInput.value;
+    const body = 'unit grammar MyGrammar;\n\n' + code;
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = 'grammar-' + date + '.rakumod';
+    await saveFileAs(body, filename, filename);
+}
+
+async function saveString() {
+    const code = stringInput.value;
+    await saveFileAs(code, 'input.txt');
+}
+
+async function openGrammar() {
+    const content = await pickAndReadFile(['.rakumod', '.raku', '.grammar'], 'grammar-file-input');
+    if (content == null) return;
+    grammarInput.value = stripGrammarWrapper(content);
+    updateHighlight();
+    sendGrammar();
+}
+
+async function openString() {
+    const content = await pickAndReadFile(['.txt'], 'string-file-input');
+    if (content == null) return;
+    stringInput.value = content;
+    sendGrammar();
+}
+
+// ============================================================
 // Event Setup
 // ============================================================
 const grammarInput = document.getElementById('grammar-code');
@@ -1017,6 +1178,12 @@ document.querySelectorAll('.panel-toggle input').forEach(function(cb) {
         }
     });
 });
+
+// Save/Open button handlers
+document.querySelectorAll('[data-action="save-grammar"]').forEach(b => b.addEventListener('click', saveGrammar));
+document.querySelectorAll('[data-action="save-string"]').forEach(b => b.addEventListener('click', saveString));
+document.querySelectorAll('[data-action="open-grammar"]').forEach(b => b.addEventListener('click', openGrammar));
+document.querySelectorAll('[data-action="open-string"]').forEach(b => b.addEventListener('click', openString));
 
 // Initial load
 grammarInput.value = GRAMMAR_DEFAULT;

@@ -2,7 +2,7 @@
 
 ### Requirement: Four-panel layout
 
-The UI SHALL display four panels. On screens wider than 768px, the layout SHALL be a left-half/right-half layout with the grammar editor and input string on the left (top/bottom) and trace and match on the right (left/right). On screens 768px or narrower, the panels SHALL stack vertically in a single column in this order: grammar editor, input string, trace, match. Each panel SHALL have a minimum height of 200px on narrow screens.
+The UI SHALL display four panels. On screens wider than 768px, the layout SHALL be a left-half/right-half layout with the grammar editor and input string on the left (top/bottom) and trace and match on the right (left/right). On screens 768px or narrower, the panels SHALL stack vertically in a single column in this order: grammar editor, input string, trace, match. Each panel SHALL have a minimum height of 200px on narrow screens. The trace and match panels SHALL each have a visible toggle in their header that lets users hide or show the panel. When hidden, the remaining panels SHALL expand to fill the available space. The grammar and string panel headers SHALL include save and open buttons.
 
 #### Scenario: Layout renders correctly on load
 
@@ -94,6 +94,20 @@ Hovering over a match node SHALL highlight the corresponding trace node in the t
 - **WHEN** the user stops hovering over a trace or match node
 - **THEN** all highlights in trace, match, and string panels are cleared
 
+### Requirement: Panel visibility toggle
+
+The trace and match panels SHALL have a toggle control in their panel header. Clicking the toggle SHALL hide the panel. Clicking again SHALL show it. When a panel is hidden, the remaining panels SHALL expand to fill the freed space.
+
+#### Scenario: Toggle hides trace panel
+- **WHEN** the user clicks the toggle on the Trace panel header
+- **THEN** the Trace panel becomes hidden
+- **AND** the Match panel expands to fill the right-half area
+
+#### Scenario: Toggle shows hidden panel
+- **WHEN** the user clicks the toggle on a hidden panel's header
+- **THEN** the panel becomes visible again
+- **AND** all panels share the available space evenly
+
 ### Requirement: Error display
 
 The UI SHALL display grammar compilation errors and runtime errors in an error bar or overlay below the panels.
@@ -102,3 +116,29 @@ The UI SHALL display grammar compilation errors and runtime errors in an error b
 
 - **WHEN** the user types invalid Raku grammar code
 - **THEN** the error message from the backend is displayed in the error area
+
+### Requirement: Save grammar and string to file
+
+The grammar panel SHALL have a save button that downloads the grammar code as a `.raku` file. The string panel SHALL have a save button that downloads the string content as a `.txt` file.
+
+#### Scenario: Save grammar button downloads .raku file
+- **WHEN** the user clicks the save button in the grammar panel header
+- **THEN** a file download is triggered with the grammar code content
+- **AND** the file extension is `.raku`
+
+#### Scenario: Save string button downloads .txt file
+- **WHEN** the user clicks the save button in the string panel header
+- **THEN** a file download is triggered with the string content
+- **AND** the file extension is `.txt`
+
+### Requirement: Open file into grammar or string
+
+The grammar panel SHALL have an open button that opens a file picker for `.raku` files and loads the content into the grammar editor. The string panel SHALL have an open button that opens a file picker for `.txt` files and loads the content into the string editor.
+
+#### Scenario: Open grammar loads .raku file
+- **WHEN** the user clicks the open button in the grammar panel header and selects a `.raku` file
+- **THEN** the file content replaces the grammar editor content
+
+#### Scenario: Open string loads .txt file
+- **WHEN** the user clicks the open button in the string panel header and selects a `.txt` file
+- **THEN** the file content replaces the string editor content
