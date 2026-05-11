@@ -21,6 +21,9 @@ import {
   renderStringColored,
   clearStringColored,
   extendStringColoring,
+  PALETTE_REGISTRY,
+  getActivePalette,
+  setActivePalette,
 } from '../js/editor.js';
 
 function setupDOM() {
@@ -466,6 +469,65 @@ describe('extendStringColoring', () => {
   test('no errors when elements missing', () => {
     document.body.innerHTML = '';
     expect(() => extendStringColoring()).not.toThrow();
+  });
+});
+
+describe('PALETTE_REGISTRY / getActivePalette / setActivePalette', () => {
+  beforeEach(() => {
+    setupDOM();
+    setActivePalette('Vitesse Dark');
+    resetColors();
+  });
+
+  test('registry has 12+ palettes', () => {
+    const names = Object.keys(PALETTE_REGISTRY);
+    expect(names.length).toBeGreaterThanOrEqual(12);
+  });
+
+  test('each palette has exactly 12 colors', () => {
+    Object.values(PALETTE_REGISTRY).forEach(entry => {
+      expect(entry.colors.length).toBe(12);
+    });
+  });
+
+  test('getActivePalette returns Vitesse Dark by default', () => {
+    expect(getActivePalette()).toBe('Vitesse Dark');
+  });
+
+  test('setActivePalette switches active palette', () => {
+    setActivePalette('Monokai');
+    expect(getActivePalette()).toBe('Monokai');
+  });
+
+  test('setActivePalette resets rule colors', () => {
+    const colorBefore = getRuleColor('vowel');
+    setActivePalette('Monokai');
+    const colorAfter = getRuleColor('vowel');
+    expect(colorBefore).not.toBe(colorAfter);
+  });
+
+  test('setActivePalette with unknown name does nothing', () => {
+    setActivePalette('NonExistent');
+    expect(getActivePalette()).toBe('Vitesse Dark');
+    expect(getRuleColor('vowel')).toBe(PALETTE_REGISTRY['Vitesse Dark'].colors[0]);
+  });
+
+  test('renderStringColored uses new palette after switch', () => {
+    document.getElementById('string-input').value = 'a';
+    renderStringColored({ rule: 'TOP', pos_start: 0, pos_end: 1, match: true, children: [
+      { rule: 'vowel', pos_start: 0, pos_end: 1, match: true }
+    ]});
+    const output1 = document.getElementById('string-colored-output');
+    const color1 = output1.innerHTML.match(/color:([^;]+)/)[1];
+
+    setActivePalette('Monokai');
+    renderStringColored({ rule: 'TOP', pos_start: 0, pos_end: 1, match: true, children: [
+      { rule: 'vowel', pos_start: 0, pos_end: 1, match: true }
+    ]});
+    const output2 = document.getElementById('string-colored-output');
+    const color2 = output2.innerHTML.match(/color:([^;]+)/)[1];
+
+    expect(color1).not.toBe(color2);
   });
 });
 

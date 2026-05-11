@@ -170,6 +170,36 @@
             color: #a6adc8;
         }
 
+        #theme-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #a6adc8;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-family: inherit;
+            transition: background 0.15s, color 0.15s;
+            outline: none;
+        }
+
+        #theme-select:hover {
+            background: #313244;
+            color: #cdd6f4;
+        }
+
+        #theme-select option {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
         #panel-toggles {
             display: flex;
             gap: 2px;
@@ -606,6 +636,7 @@
             </label>
             <button class="toolbar-btn" id="btn-dsl" title="DSL: show Input + Made only">DSL</button>
             <button class="toolbar-btn" id="btn-pro" title="PRO: show all panels">PRO</button>
+            <select id="theme-select" class="toolbar-btn" title="Select color theme"></select>
             <span class="toolbar-spacer"></span>
             <button class="toolbar-btn" id="btn-share" title="Copy shareable URL">🔗 Share</button>
         </div>
@@ -706,11 +737,13 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         // Raku Grammar Syntax Highlighting
         // ============================================================
         let _highlightRaku = null;
+        let _setShikiTheme = null;
         async function getHighlightRaku() {
             if (!_highlightRaku) {
                 try {
                     const m = await import('./js/highlight.js');
                     _highlightRaku = m.default;
+                    _setShikiTheme = m.setShikiTheme;
                 } catch {
                     _highlightRaku = function (c) {
                         return c ? c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
@@ -936,11 +969,71 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         // ============================================================
         // String Coloring (permanent foreground coloring by rule name)
         // ============================================================
-        const STRING_COLOR_PALETTE = [
-            '#4d9375', '#cb7676', '#c98a7d', '#bd976a',
-            '#5DA994', '#80a665', '#b8a965', '#c99076',
-            '#e6cc77', '#6872ab', '#db889a', '#6394bf',
-        ];
+        const PALETTE_REGISTRY = {
+            'Vitesse Dark': { shiki: 'vitesse-dark', colors: [
+                '#4d9375', '#cb7676', '#c98a7d', '#bd976a',
+                '#5DA994', '#80a665', '#b8a965', '#c99076',
+                '#e6cc77', '#6872ab', '#db889a', '#6394bf',
+            ] },
+            'GitHub Dark': { shiki: 'github-dark', colors: [
+                '#79c0ff', '#ff7b72', '#7ee787', '#d2a8ff',
+                '#a5d6ff', '#ffa657', '#f778ba', '#f0883e',
+                '#3fb950', '#58a6ff', '#c9d1d9', '#ffc680',
+            ] },
+            'Ayu Mirage': { shiki: 'ayu-dark', colors: [
+                '#73d0ff', '#f7796b', '#dab06a', '#95e6cb',
+                '#c594c5', '#f28779', '#bae0ff', '#ffcc66',
+                '#5ccfe6', '#d4bfff', '#ffdfb3', '#66d9ef',
+            ] },
+            'Monokai': { shiki: 'monokai', colors: [
+                '#a6e22e', '#f92672', '#66d9ef', '#ae81ff',
+                '#fd971f', '#e6db74', '#fc618d', '#89bdff',
+                '#a1efe4', '#f44747', '#f8f8f2', '#ffb267',
+            ] },
+            'Dracula': { shiki: 'dracula', colors: [
+                '#ff79c6', '#50fa7b', '#f1fa8c', '#bd93f9',
+                '#ff5555', '#8be9fd', '#f8f8f2', '#ffb86c',
+                '#cba6f7', '#89dceb', '#f38ba8', '#a6e3a1',
+            ] },
+            'Nord': { shiki: 'nord', colors: [
+                '#88c0d0', '#bf616a', '#a3be8c', '#b48ead',
+                '#81a1c1', '#d08770', '#ebcb8b', '#5e81ac',
+                '#8fbcbb', '#c9826b', '#a3be8c', '#b48ead',
+            ] },
+            'Solarized Dark': { shiki: 'solarized-dark', colors: [
+                '#268bd2', '#dc322f', '#859900', '#6c71c4',
+                '#d33682', '#2aa198', '#b58900', '#cb4b16',
+                '#839496', '#657b83', '#93a1a1', '#eee8d5',
+            ] },
+            'One Dark': { shiki: 'one-dark-pro', colors: [
+                '#61afef', '#e06c75', '#98c379', '#c678dd',
+                '#d19a66', '#56b6c2', '#e5c07b', '#be5046',
+                '#7ec8e3', '#abb2bf', '#f44747', '#89ca78',
+            ] },
+            'Catppuccin': { shiki: 'catppuccin-mocha', colors: [
+                '#89b4fa', '#a6e3a1', '#f9e2af', '#fab387',
+                '#f38ba8', '#cba6f7', '#89dceb', '#f5c2e7',
+                '#b4befe', '#94e2d5', '#74c7ec', '#eba0ac',
+            ] },
+            'Tokyo Night': { shiki: 'tokyo-night', colors: [
+                '#7aa2f7', '#f7768e', '#9ece6a', '#bb9af7',
+                '#e0af68', '#73daca', '#ff9e64', '#2ac3de',
+                '#b4f9f8', '#c0caf5', '#ff007c', '#41a6b5',
+            ] },
+            'Gruvbox Dark': { shiki: 'gruvbox-dark-soft', colors: [
+                '#fabd2f', '#fb4934', '#b8bb26', '#d3869b',
+                '#83a598', '#fe8019', '#8ec07c', '#d79921',
+                '#928374', '#bdae93', '#ebdbb2', '#a89984',
+            ] },
+            'Material Dark': { shiki: 'material-theme-darker', colors: [
+                '#89ddff', '#f07178', '#c3e88d', '#c792ea',
+                '#f78c6c', '#80cbc4', '#ffcb6b', '#b2ccd6',
+                '#82aaff', '#eeffff', '#546e7a', '#f07178',
+            ] },
+        };
+
+        let activePaletteName = 'Vitesse Dark';
+        let STRING_COLOR_PALETTE = PALETTE_REGISTRY['Vitesse Dark'].colors.slice();
 
         let ruleColors = new Map();
         let ruleColorIndex = 0;
@@ -952,6 +1045,18 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
                 ruleColorIndex++;
             }
             return ruleColors.get(ruleName);
+        }
+
+        function getActivePalette() { return activePaletteName; }
+
+        function setActivePalette(name) {
+            if (!PALETTE_REGISTRY[name]) return;
+            activePaletteName = name;
+            STRING_COLOR_PALETTE = PALETTE_REGISTRY[name].colors.slice();
+            resetColors();
+            if (_setShikiTheme) {
+                _setShikiTheme(PALETTE_REGISTRY[name].shiki);
+            }
         }
 
         function escapeHtml(s) {
@@ -1821,6 +1926,26 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             var toggle = document.querySelector('.panel-toggle[data-panel="' + id + '"] input');
             if (toggle) toggle.checked = visible;
         }
+
+        // ============================================================
+        // Theme Selector
+        // ============================================================
+        (function initThemeSelect() {
+            var sel = document.getElementById('theme-select');
+            if (!sel) return;
+            Object.keys(PALETTE_REGISTRY).forEach(function (name) {
+                var opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                sel.appendChild(opt);
+            });
+            sel.value = activePaletteName;
+            sel.addEventListener('change', function () {
+                setActivePalette(this.value);
+                updateHighlight();
+                sendGrammar();
+            });
+        })();
 
         // ============================================================
         // Resize Handles

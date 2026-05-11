@@ -225,11 +225,82 @@ export function clearStringHighlights() {
     highlightEls = [];
 }
 
-const STRING_COLOR_PALETTE = [
-    '#4d9375', '#cb7676', '#c98a7d', '#bd976a',
-    '#5DA994', '#80a665', '#b8a965', '#c99076',
-    '#e6cc77', '#6872ab', '#db889a', '#6394bf',
-];
+export const PALETTE_REGISTRY = {
+    'Vitesse Dark': { shiki: 'vitesse-dark', colors: [
+        '#4d9375', '#cb7676', '#c98a7d', '#bd976a',
+        '#5DA994', '#80a665', '#b8a965', '#c99076',
+        '#e6cc77', '#6872ab', '#db889a', '#6394bf',
+    ] },
+    'GitHub Dark': { shiki: 'github-dark', colors: [
+        '#79c0ff', '#ff7b72', '#7ee787', '#d2a8ff',
+        '#a5d6ff', '#ffa657', '#f778ba', '#f0883e',
+        '#3fb950', '#58a6ff', '#c9d1d9', '#ffc680',
+    ] },
+    'Ayu Mirage': { shiki: 'ayu-dark', colors: [
+        '#73d0ff', '#f7796b', '#dab06a', '#95e6cb',
+        '#c594c5', '#f28779', '#bae0ff', '#ffcc66',
+        '#5ccfe6', '#d4bfff', '#ffdfb3', '#66d9ef',
+    ] },
+    'Monokai': { shiki: 'monokai', colors: [
+        '#a6e22e', '#f92672', '#66d9ef', '#ae81ff',
+        '#fd971f', '#e6db74', '#fc618d', '#89bdff',
+        '#a1efe4', '#f44747', '#f8f8f2', '#ffb267',
+    ] },
+    'Dracula': { shiki: 'dracula', colors: [
+        '#ff79c6', '#50fa7b', '#f1fa8c', '#bd93f9',
+        '#ff5555', '#8be9fd', '#f8f8f2', '#ffb86c',
+        '#cba6f7', '#89dceb', '#f38ba8', '#a6e3a1',
+    ] },
+    'Nord': { shiki: 'nord', colors: [
+        '#88c0d0', '#bf616a', '#a3be8c', '#b48ead',
+        '#81a1c1', '#d08770', '#ebcb8b', '#5e81ac',
+        '#8fbcbb', '#c9826b', '#a3be8c', '#b48ead',
+    ] },
+    'Solarized Dark': { shiki: 'solarized-dark', colors: [
+        '#268bd2', '#dc322f', '#859900', '#6c71c4',
+        '#d33682', '#2aa198', '#b58900', '#cb4b16',
+        '#839496', '#657b83', '#93a1a1', '#eee8d5',
+    ] },
+    'One Dark': { shiki: 'one-dark-pro', colors: [
+        '#61afef', '#e06c75', '#98c379', '#c678dd',
+        '#d19a66', '#56b6c2', '#e5c07b', '#be5046',
+        '#7ec8e3', '#abb2bf', '#f44747', '#89ca78',
+    ] },
+    'Catppuccin': { shiki: 'catppuccin-mocha', colors: [
+        '#89b4fa', '#a6e3a1', '#f9e2af', '#fab387',
+        '#f38ba8', '#cba6f7', '#89dceb', '#f5c2e7',
+        '#b4befe', '#94e2d5', '#74c7ec', '#eba0ac',
+    ] },
+    'Tokyo Night': { shiki: 'tokyo-night', colors: [
+        '#7aa2f7', '#f7768e', '#9ece6a', '#bb9af7',
+        '#e0af68', '#73daca', '#ff9e64', '#2ac3de',
+        '#b4f9f8', '#c0caf5', '#ff007c', '#41a6b5',
+    ] },
+    'Gruvbox Dark': { shiki: 'gruvbox-dark-soft', colors: [
+        '#fabd2f', '#fb4934', '#b8bb26', '#d3869b',
+        '#83a598', '#fe8019', '#8ec07c', '#d79921',
+        '#928374', '#bdae93', '#ebdbb2', '#a89984',
+    ] },
+    'Material Dark': { shiki: 'material-theme-darker', colors: [
+        '#89ddff', '#f07178', '#c3e88d', '#c792ea',
+        '#f78c6c', '#80cbc4', '#ffcb6b', '#b2ccd6',
+        '#82aaff', '#eeffff', '#546e7a', '#f07178',
+    ] },
+};
+
+let activePaletteName = 'Vitesse Dark';
+let STRING_COLOR_PALETTE = [...PALETTE_REGISTRY['Vitesse Dark'].colors];
+
+export function getActivePalette() {
+    return activePaletteName;
+}
+
+export function setActivePalette(name) {
+    if (!PALETTE_REGISTRY[name]) return;
+    activePaletteName = name;
+    STRING_COLOR_PALETTE = [...PALETTE_REGISTRY[name].colors];
+    resetColors();
+}
 
 let ruleColors = new Map();
 let ruleColorIndex = 0;

@@ -33,14 +33,14 @@ The UI SHALL display four panels. On screens wider than 768px, the layout SHALL 
 - **THEN** the full text of the actions code is visible in the editor
 - **AND** no part of the text is clipped or obscured by overlapping elements
 
-### Requirement: Rainbow syntax highlighting
+### Requirement: Raku syntax highlighting
 
-The grammar editor textarea SHALL use the Rainbow JS library to apply Raku syntax highlighting in real time. Highlighting SHALL update as the user types.
+The grammar editor textarea SHALL use a custom Raku syntax highlighter (via Shiki) to apply Raku syntax highlighting in real time. Highlighting SHALL update as the user types.
 
 #### Scenario: Grammar code is highlighted
 
 - **WHEN** the user types valid Raku grammar code into the editor
-- **THEN** tokens (keywords, regex atoms, rule names) are rendered in distinct colors via Rainbow
+- **THEN** tokens (keywords, regex atoms, rule names, variables, adverbs, character classes, assertions, operators) are rendered in distinct colors
 
 ### Requirement: WebSocket communication
 
@@ -60,7 +60,7 @@ The UI SHALL establish a WebSocket connection to the backend on page load. It SH
 
 ### Requirement: Color-coded trace display
 
-The trace panel SHALL render the grammar trace as a nested tree. Each trace node SHALL show the rule name and whether it matched or failed. Matched nodes SHALL have a green indicator; failed nodes SHALL have a red indicator. Each node SHALL be assigned a unique color that is used consistently across trace, string highlight, and match highlight. Node identities SHALL be unique per rendering to ensure sibling nodes with the same rule name receive distinct colors.
+The trace panel SHALL render the grammar trace as a nested tree. Each trace node SHALL show the rule name and whether it matched or failed. Matched nodes SHALL have a green indicator; failed nodes SHALL have a red indicator. Colors SHALL be drawn from the currently active theme palette and SHALL update when the user selects a different theme via the dropdown.
 
 #### Scenario: Matched rule shown in green
 
@@ -72,9 +72,11 @@ The trace panel SHALL render the grammar trace as a nested tree. Each trace node
 - **WHEN** the backend returns a trace with a failed rule
 - **THEN** that trace node displays a red badge or border
 
-#### Scenario: Sibling rules with same name have distinct colors
-- **WHEN** a trace tree contains multiple sibling nodes with the same rule name (e.g., repeated `<digit>`)
-- **THEN** each sibling node SHALL have a different color assigned
+#### Scenario: Colors update on theme change
+- **WHEN** the user selects a new theme from the dropdown
+- **THEN** all trace node colors update to the new palette
+- **AND** the string panel coloring updates
+- **AND** the match panel coloring updates
 
 ### Requirement: String region highlighting on hover
 
@@ -110,7 +112,7 @@ Hovering over a match node SHALL highlight the corresponding trace node in the t
 
 ### Requirement: Panel visibility toggle
 
-The trace and match panels SHALL have a toggle control in their panel header. Clicking the toggle SHALL hide the panel. Clicking again SHALL show it. When a panel is hidden, the remaining panels SHALL expand to fill the freed space.
+The trace, match, grammar, and input panels SHALL have a toggle control in their panel header. Clicking the toggle SHALL hide the panel. Clicking again SHALL show it. When a panel is hidden, the remaining panels SHALL expand to fill the freed space.
 
 #### Scenario: Toggle hides trace panel
 - **WHEN** the user clicks the toggle on the Trace panel header
@@ -121,6 +123,16 @@ The trace and match panels SHALL have a toggle control in their panel header. Cl
 - **WHEN** the user clicks the toggle on a hidden panel's header
 - **THEN** the panel becomes visible again
 - **AND** all panels share the available space evenly
+
+#### Scenario: Toggle hides grammar panel
+- **WHEN** the user clicks the toggle on the Grammar panel header
+- **THEN** the Grammar panel becomes hidden
+- **AND** the remaining left-column panels expand to fill the space
+
+#### Scenario: Toggle hides input panel
+- **WHEN** the user clicks the toggle on the Input panel header
+- **THEN** the Input panel becomes hidden
+- **AND** the remaining left-column panels expand to fill the space
 
 ### Requirement: Error display
 
@@ -225,7 +237,7 @@ The Actions panel SHALL contain a textarea for editing Raku class code. The text
 
 #### Scenario: Actions code is highlighted
 - **WHEN** the user types valid Raku code into the Actions editor
-- **THEN** tokens (keywords, class names, method declarations) are rendered in distinct colors
+- **THEN** tokens (keywords, class names, method declarations, variables, types, operators) are rendered in distinct colors
 
 ### Requirement: Actions code sent to backend
 
@@ -276,19 +288,6 @@ The Made panel SHALL display the `.made` value of the top-level match as a `.rak
 #### Scenario: No made value
 - **WHEN** the backend returns a response without a `made` field
 - **THEN** the Made panel SHALL be empty
-
-### Requirement: Right column layout with Made panel
-
-When the Made panel is visible, the right column SHALL use a nested flex layout: top row (flex-direction: row) with Trace and Match panels, bottom row with Made panel (full width, flex: 0 0 25% of right column height).
-
-#### Scenario: Right column layout with made visible
-- **WHEN** Trace, Match, and Made are all visible
-- **THEN** Trace and Match share the top row equally
-- **AND** Made occupies the bottom 1/4 of the right column
-
-#### Scenario: Right column layout with made hidden
-- **WHEN** Made is hidden but Trace and Match are visible
-- **THEN** Trace and Match fill the right column in the existing layout
 
 ### Requirement: Actions save button
 
@@ -371,4 +370,14 @@ The resize handles SHALL be created dynamically by JavaScript. The handle creati
 #### Scenario: Handles update on panel toggle
 - **WHEN** a panel is shown or hidden via toggle
 - **THEN** the adjacent resize handles are shown or hidden accordingly
+
+#### Scenario: Handle between Grammar and Actions updates on grammar toggle
+- **WHEN** the user hides the Grammar panel
+- **THEN** the resize handle between Grammar and Actions panels is hidden
+- **AND** when the Grammar panel is shown again, the handle reappears
+
+#### Scenario: Handle between Actions and Input updates on input toggle
+- **WHEN** the user hides the Input panel
+- **THEN** the resize handle between Actions and Input panels is hidden
+- **AND** when the Input panel is shown again, the handle reappears
 
