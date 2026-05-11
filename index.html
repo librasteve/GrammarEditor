@@ -1015,6 +1015,59 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             if (output) output.innerHTML = '';
         }
 
+        function extendStringColoring() {
+            const output = document.getElementById('string-colored-output');
+            const textarea = document.getElementById('string-input');
+            if (!output || !textarea) return;
+
+            const text = textarea.value;
+            const outputText = output.textContent;
+
+            if (text === outputText) return;
+
+            if (!text) {
+                output.innerHTML = '';
+                return;
+            }
+
+            const cursorPos = textarea.selectionStart;
+
+            if (text.length > outputText.length) {
+                if (cursorPos === text.length && text.startsWith(outputText)) {
+                    const lastSpan = output.lastElementChild;
+                    if (lastSpan && lastSpan.tagName === 'SPAN') {
+                        const style = lastSpan.getAttribute('style') || '';
+                        const addedText = text.slice(outputText.length);
+                        output.innerHTML += '<span style="' + style + '">' + escapeHtml(addedText) + '</span>';
+                        return;
+                    }
+                }
+                return;
+            }
+
+            if (text.length < outputText.length && cursorPos === text.length) {
+                let remaining = outputText.length - text.length;
+                let node = output.lastChild;
+                while (node && remaining > 0) {
+                    const contentNode = node.nodeType === Node.TEXT_NODE ? node : node.firstChild;
+                    if (contentNode && contentNode.nodeType === Node.TEXT_NODE) {
+                        const len = contentNode.textContent.length;
+                        if (len <= remaining) {
+                            remaining -= len;
+                            const prev = node.previousSibling;
+                            node.remove();
+                            node = prev;
+                        } else {
+                            contentNode.textContent = contentNode.textContent.slice(0, len - remaining);
+                            remaining = 0;
+                        }
+                    } else {
+                        node = node.previousSibling;
+                    }
+                }
+            }
+        }
+
         // ============================================================
         // Match Rendering
         // ============================================================
@@ -1477,6 +1530,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
                 grammarInput.value = data.grammar_code || '';
                 stringInput.value = data.string_input || '';
                 actionsInput.value = data.actions_code || '';
+                renderStringColored(null);
                 if (data.state) {
                     restorePaneState(JSON.parse(data.state));
                 } else {
@@ -1571,7 +1625,10 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             debouncedSend();
         });
 
-        stringInput.addEventListener('input', debouncedSend);
+        stringInput.addEventListener('input', () => {
+            extendStringColoring();
+            debouncedSend();
+        });
 
         grammarInput.addEventListener('scroll', () => {
             const pre = document.getElementById('grammar-highlight');
@@ -1777,6 +1834,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
                     grammarInput.value = GRAMMAR_DEFAULT;
                     stringInput.value = STRING_DEFAULT;
                     updateHighlight();
+                    renderStringColored(null);
                     setTimeout(sendGrammar, 500);
                 }
             });
@@ -1784,6 +1842,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             grammarInput.value = GRAMMAR_DEFAULT;
             stringInput.value = STRING_DEFAULT;
             updateHighlight();
+            renderStringColored(null);
         }
 
         document.addEventListener('DOMContentLoaded', () => {

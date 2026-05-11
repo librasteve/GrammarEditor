@@ -20,6 +20,7 @@ import {
   getRuleColor,
   renderStringColored,
   clearStringColored,
+  extendStringColoring,
 } from '../js/editor.js';
 
 function setupDOM() {
@@ -401,6 +402,70 @@ describe('renderStringColored / clearStringColored', () => {
     document.body.innerHTML = '';
     expect(() => renderStringColored(null)).not.toThrow();
     expect(() => clearStringColored()).not.toThrow();
+  });
+});
+
+describe('extendStringColoring', () => {
+  beforeEach(() => {
+    setupDOM();
+    document.getElementById('string-input').value = 'hello';
+    document.getElementById('string-colored-output').innerHTML =
+      '<span style="color:#4d9375;font-style:italic">h</span>' +
+      '<span style="color:#cb7676;font-style:italic">e</span>' +
+      '<span style="color:#c98a7d;font-style:italic">llo</span>';
+  });
+
+  test('extends with last span style when typing at end', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hellox';
+    ta.selectionStart = 6;
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toContain('<span style="color:#c98a7d;font-style:italic">llo</span>');
+    expect(output.innerHTML).toContain('<span style="color:#c98a7d;font-style:italic">x</span>');
+    expect(output.textContent).toBe('hellox');
+  });
+
+  test('trims last char on backspace at end, keeping colors', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hell';
+    ta.selectionStart = 4;
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.textContent).toBe('hell');
+    expect(output.innerHTML).toContain('<span');
+    expect(output.innerHTML).toContain('style="color:#c98a7d;font-style:italic"');
+  });
+
+  test('preserves existing coloring on deletion in middle', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hllo'; // deleted 'e' at position 1
+    ta.selectionStart = 1;
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    // text is shorter but cursor not at end — old spans stay unchanged
+    expect(output.textContent).toBe('hello');
+  });
+
+  test('does nothing when text unchanged', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hello';
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toContain('<span');
+    expect(output.textContent).toBe('hello');
+  });
+
+  test('handles empty textarea', () => {
+    document.getElementById('string-input').value = '';
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toBe('');
+  });
+
+  test('no errors when elements missing', () => {
+    document.body.innerHTML = '';
+    expect(() => extendStringColoring()).not.toThrow();
   });
 });
 

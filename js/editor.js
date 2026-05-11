@@ -321,6 +321,59 @@ export function clearStringColored() {
     if (output) output.innerHTML = '';
 }
 
+export function extendStringColoring() {
+    const output = document.getElementById('string-colored-output');
+    const textarea = document.getElementById('string-input');
+    if (!output || !textarea) return;
+
+    const text = textarea.value;
+    const outputText = output.textContent;
+
+    if (text === outputText) return;
+
+    if (!text) {
+        output.innerHTML = '';
+        return;
+    }
+
+    const cursorPos = textarea.selectionStart;
+
+    if (text.length > outputText.length) {
+        if (cursorPos === text.length && text.startsWith(outputText)) {
+            const lastSpan = output.lastElementChild;
+            if (lastSpan && lastSpan.tagName === 'SPAN') {
+                const style = lastSpan.getAttribute('style') || '';
+                const addedText = text.slice(outputText.length);
+                output.innerHTML += '<span style="' + style + '">' + escapeHtml(addedText) + '</span>';
+                return;
+            }
+        }
+        return;
+    }
+
+    if (text.length < outputText.length && cursorPos === text.length) {
+        let remaining = outputText.length - text.length;
+        let node = output.lastChild;
+        while (node && remaining > 0) {
+            const contentNode = node.nodeType === Node.TEXT_NODE ? node : node.firstChild;
+            if (contentNode && contentNode.nodeType === Node.TEXT_NODE) {
+                const len = contentNode.textContent.length;
+                if (len <= remaining) {
+                    remaining -= len;
+                    const prev = node.previousSibling;
+                    node.remove();
+                    node = prev;
+                } else {
+                    contentNode.textContent = contentNode.textContent.slice(0, len - remaining);
+                    remaining = 0;
+                }
+            } else {
+                node = node.previousSibling;
+            }
+        }
+    }
+}
+
 let matchNodeMap = new Map();
 let matchPosMap = new Map();
 
