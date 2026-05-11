@@ -1781,6 +1781,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
 
         document.getElementById('btn-dsl').addEventListener('click', function () {
             if (this.classList.contains('disabled')) return;
+            resetPanelSizes();
             setPanel('grammar', false);
             setPanel('actions', false);
             setPanel('trace', false);
@@ -1793,6 +1794,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
 
         document.getElementById('btn-pro').addEventListener('click', function () {
             if (this.classList.contains('disabled')) return;
+            resetPanelSizes();
             setPanel('grammar', true);
             setPanel('actions', true);
             setPanel('trace', true);
@@ -1802,6 +1804,15 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             updateRightHalf();
             updateViewModeButtons();
         });
+
+        function resetPanelSizes() {
+            ['left-half', 'right-half', 'right-top-row',
+             'grammar-panel', 'actions-panel', 'string-panel',
+             'trace-panel', 'match-panel', 'made-panel'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.style.flex = '';
+            });
+        }
 
         function setPanel(id, visible) {
             var el = document.getElementById(id + '-panel');
