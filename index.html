@@ -696,8 +696,14 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         let _highlightRaku = null;
         async function getHighlightRaku() {
             if (!_highlightRaku) {
-                const m = await import('./js/highlight.js');
-                _highlightRaku = m.default;
+                try {
+                    const m = await import('./js/highlight.js');
+                    _highlightRaku = m.default;
+                } catch {
+                    _highlightRaku = function (c) {
+                        return c ? c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+                    };
+                }
             }
             return _highlightRaku;
         }

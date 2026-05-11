@@ -56,3 +56,5 @@ Web-based grammar editor with a JS frontend and a Raku backend.
 - Core logic extracted to `lib/GrammarEngine.rakumod` and `js/editor.js` for testing
 - Tests in `t/` directory
 - Changes tracked in `openspec/changes/<name>/`
+
+

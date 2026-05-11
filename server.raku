@@ -148,24 +148,19 @@ my $app = route {
     }
 
     # Static JS files
-    get -> 'js', $file {
-        my $full = $*PROGRAM.parent.child("js/$file");
-        if $full.e {
-            content 'application/javascript', $full.slurp;
-        } else {
-            not-found;
-        }
+    get -> 'js', *@path {
+        static 'js', @path;
     }
 }
 
 my $server = Cro::HTTP::Server.new(
     :host('0.0.0.0'),
-    :port(3001),
+    :port(%*ENV<PORT> // 3001),
     :application($app)
 );
 
 $server.start;
-say "Grammar Editor ready at http://localhost:3001";
+say "Grammar Editor ready at http://localhost:" ~ (%*ENV<PORT> // 3001);
 react whenever signal(SIGINT) {
     $server.stop;
     exit;
