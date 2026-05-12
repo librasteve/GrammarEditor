@@ -21,31 +21,108 @@ export function debounce(fn, ms) {
     };
 }
 
-export const COLOR_PALETTE = [
-    '#89b4fa', '#a6e3a1', '#f9e2af', '#fab387', '#f38ba8',
-    '#cba6f7', '#89dceb', '#f5c2e7', '#b4befe', '#94e2d5',
-    '#74c7ec', '#eba0ac', '#f2cdcd', '#a6adc8', '#bac2de'
-];
+export const PALETTE_REGISTRY = {
+    'Vitesse Dark': { shiki: 'vitesse-dark', colors: [
+        '#4d9375', '#cb7676', '#c98a7d', '#bd976a',
+        '#5DA994', '#80a665', '#b8a965', '#c99076',
+        '#e6cc77', '#6872ab', '#db889a', '#6394bf',
+    ] },
+    'GitHub Dark': { shiki: 'github-dark', colors: [
+        '#79c0ff', '#ff7b72', '#7ee787', '#d2a8ff',
+        '#a5d6ff', '#ffa657', '#f778ba', '#f0883e',
+        '#3fb950', '#58a6ff', '#c9d1d9', '#ffc680',
+    ] },
+    'Ayu Mirage': { shiki: 'ayu-dark', colors: [
+        '#73d0ff', '#f7796b', '#dab06a', '#95e6cb',
+        '#c594c5', '#f28779', '#bae0ff', '#ffcc66',
+        '#5ccfe6', '#d4bfff', '#ffdfb3', '#66d9ef',
+    ] },
+    'Monokai': { shiki: 'monokai', colors: [
+        '#a6e22e', '#f92672', '#66d9ef', '#ae81ff',
+        '#fd971f', '#e6db74', '#fc618d', '#89bdff',
+        '#a1efe4', '#f44747', '#f8f8f2', '#ffb267',
+    ] },
+    'Dracula': { shiki: 'dracula', colors: [
+        '#ff79c6', '#50fa7b', '#f1fa8c', '#bd93f9',
+        '#ff5555', '#8be9fd', '#f8f8f2', '#ffb86c',
+        '#cba6f7', '#89dceb', '#f38ba8', '#a6e3a1',
+    ] },
+    'Nord': { shiki: 'nord', colors: [
+        '#88c0d0', '#bf616a', '#a3be8c', '#b48ead',
+        '#81a1c1', '#d08770', '#ebcb8b', '#5e81ac',
+        '#8fbcbb', '#c9826b', '#a3be8c', '#b48ead',
+    ] },
+    'Solarized Dark': { shiki: 'solarized-dark', colors: [
+        '#268bd2', '#dc322f', '#859900', '#6c71c4',
+        '#d33682', '#2aa198', '#b58900', '#cb4b16',
+        '#839496', '#657b83', '#93a1a1', '#eee8d5',
+    ] },
+    'One Dark': { shiki: 'one-dark-pro', colors: [
+        '#61afef', '#e06c75', '#98c379', '#c678dd',
+        '#d19a66', '#56b6c2', '#e5c07b', '#be5046',
+        '#7ec8e3', '#abb2bf', '#f44747', '#89ca78',
+    ] },
+    'Catppuccin': { shiki: 'catppuccin-mocha', colors: [
+        '#89b4fa', '#a6e3a1', '#f9e2af', '#fab387',
+        '#f38ba8', '#cba6f7', '#89dceb', '#f5c2e7',
+        '#b4befe', '#94e2d5', '#74c7ec', '#eba0ac',
+    ] },
+    'Tokyo Night': { shiki: 'tokyo-night', colors: [
+        '#7aa2f7', '#f7768e', '#9ece6a', '#bb9af7',
+        '#e0af68', '#73daca', '#ff9e64', '#2ac3de',
+        '#b4f9f8', '#c0caf5', '#ff007c', '#41a6b5',
+    ] },
+    'Gruvbox Dark': { shiki: 'gruvbox-dark-soft', colors: [
+        '#fabd2f', '#fb4934', '#b8bb26', '#d3869b',
+        '#83a598', '#fe8019', '#8ec07c', '#d79921',
+        '#928374', '#bdae93', '#ebdbb2', '#a89984',
+    ] },
+    'Material Dark': { shiki: 'material-theme-darker', colors: [
+        '#89ddff', '#f07178', '#c3e88d', '#c792ea',
+        '#f78c6c', '#80cbc4', '#ffcb6b', '#b2ccd6',
+        '#82aaff', '#eeffff', '#546e7a', '#f07178',
+    ] },
+};
 
-let colorIndex = 0;
-let nodeColors = new Map();
+let activePaletteName = 'Vitesse Dark';
+let STRING_COLOR_PALETTE = [...PALETTE_REGISTRY['Vitesse Dark'].colors];
+
+export function getActivePalette() {
+    return activePaletteName;
+}
+
+export function setActivePalette(name) {
+    if (!PALETTE_REGISTRY[name]) return;
+    activePaletteName = name;
+    STRING_COLOR_PALETTE = [...PALETTE_REGISTRY[name].colors];
+    resetColors();
+}
+
+let ruleColors = new Map();
+let ruleColorIndex = 0;
+
+export function getRuleColor(ruleName) {
+    if (ruleName === 'TOP') return '#6c7086';
+    if (!ruleColors.has(ruleName)) {
+        ruleColors.set(ruleName, STRING_COLOR_PALETTE[ruleColorIndex % STRING_COLOR_PALETTE.length]);
+        ruleColorIndex++;
+    }
+    return ruleColors.get(ruleName);
+}
 
 export function getNodeColor(nodeId) {
-    if (!nodeColors.has(nodeId)) {
-        nodeColors.set(nodeId, COLOR_PALETTE[colorIndex % COLOR_PALETTE.length]);
-        colorIndex++;
-    }
-    return nodeColors.get(nodeId);
+    const parts = nodeId.split('/');
+    const ruleName = parts[parts.length - 1];
+    return getRuleColor(ruleName);
 }
 
 export function resetColors() {
-    colorIndex = 0;
-    nodeColors = new Map();
+    ruleColors = new Map();
+    ruleColorIndex = 0;
 }
 
 export function renderTrace(tree) {
     const body = document.getElementById('trace-body');
-    resetColors();
     traceNodeMap = new Map();
     body.innerHTML = '';
     if (!tree) return;
@@ -234,6 +311,137 @@ export function clearStringHighlights() {
     const container = document.getElementById('string-highlights');
     for (const el of highlightEls) el.remove();
     highlightEls = [];
+}
+
+export function renderStringColored(match) {
+    const output = document.getElementById('string-colored-output');
+    const textarea = document.getElementById('string-input');
+    if (!output || !textarea) return;
+
+    const text = textarea.value;
+    if (!match || !text) {
+        output.innerHTML = text ? escapeHtml(text) : '';
+        return;
+    }
+
+    const nodes = [];
+    function collect(node, depth) {
+        if (node == null) return;
+        if (node.pos_start != null && node.pos_end != null && node.match) {
+            nodes.push({
+                start: node.pos_start,
+                end: node.pos_end,
+                rule: node.rule || 'TOP',
+                depth: depth,
+                isLeaf: !node.children || node.children.length === 0
+            });
+        }
+        if (node.children) {
+            for (const child of node.children) {
+                collect(child, depth + 1);
+            }
+        }
+    }
+    collect(match, 0);
+
+    if (nodes.length === 0) {
+        output.innerHTML = escapeHtml(text);
+        return;
+    }
+
+    const posRule = new Array(text.length);
+    for (let i = 0; i < text.length; i++) {
+        let bestDepth = -1;
+        let bestNode = null;
+        for (const node of nodes) {
+            if (i >= node.start && i < node.end && node.depth > bestDepth) {
+                bestDepth = node.depth;
+                bestNode = node;
+            }
+        }
+        posRule[i] = bestNode;
+    }
+
+    let html = '';
+    let i = 0;
+    while (i < text.length) {
+        const node = posRule[i];
+        let j = i + 1;
+        while (j < text.length && posRule[j] === node) j++;
+
+        const segment = text.slice(i, j);
+        const escaped = escapeHtml(segment);
+
+        if (node) {
+            const color = getRuleColor(node.rule);
+            const style = node.isLeaf ? 'color:' + color + ';font-style:italic' : 'color:' + color;
+            html += '<span style="' + style + '">' + escaped + '</span>';
+        } else {
+            html += escaped;
+        }
+
+        i = j;
+    }
+
+    output.innerHTML = html;
+}
+
+export function clearStringColored() {
+    const output = document.getElementById('string-colored-output');
+    if (output) output.innerHTML = '';
+}
+
+export function extendStringColoring() {
+    const output = document.getElementById('string-colored-output');
+    const textarea = document.getElementById('string-input');
+    if (!output || !textarea) return;
+
+    const text = textarea.value;
+    const outputText = output.textContent;
+
+    if (text === outputText) return;
+
+    if (!text) {
+        output.innerHTML = '';
+        return;
+    }
+
+    const cursorPos = textarea.selectionStart;
+
+    if (text.length > outputText.length) {
+        if (cursorPos === text.length && text.startsWith(outputText)) {
+            const lastSpan = output.lastElementChild;
+            if (lastSpan && lastSpan.tagName === 'SPAN') {
+                const style = lastSpan.getAttribute('style') || '';
+                const addedText = text.slice(outputText.length);
+                output.innerHTML += '<span style="' + style + '">' + escapeHtml(addedText) + '</span>';
+                return;
+            }
+        }
+        return;
+    }
+
+    if (text.length < outputText.length && cursorPos === text.length) {
+        let remaining = outputText.length - text.length;
+        let node = output.lastChild;
+        while (node && remaining > 0) {
+            const contentNode = node.nodeType === Node.TEXT_NODE ? node : node.firstChild;
+            if (contentNode && contentNode.nodeType === Node.TEXT_NODE) {
+                const len = contentNode.textContent.length;
+                if (len <= remaining) {
+                    remaining -= len;
+                    const prev = node.previousSibling;
+                    node.remove();
+                    node = prev;
+                } else {
+                    contentNode.textContent = contentNode.textContent.slice(0, len - remaining);
+                    remaining = 0;
+                }
+            } else {
+                node = node.previousSibling;
+            }
+        }
+    }
 }
 
 let matchNodeMap = new Map();

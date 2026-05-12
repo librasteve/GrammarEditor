@@ -17,6 +17,13 @@ import {
   resetColors,
   highlightTraceNodeByPath,
   clearTraceHighlights,
+  getRuleColor,
+  renderStringColored,
+  clearStringColored,
+  extendStringColoring,
+  PALETTE_REGISTRY,
+  getActivePalette,
+  setActivePalette,
 } from '../js/editor.js';
 
 function setupDOM() {
@@ -28,6 +35,7 @@ function setupDOM() {
     <div id="error-bar"></div>
     <div id="status-bar"></div>
     <textarea id="string-input"></textarea>
+    <pre id="string-colored"><code id="string-colored-output"></code></pre>
     <textarea id="grammar-code"></textarea>
     <pre id="grammar-highlight"><code id="highlight-output"></code></pre>
     <textarea id="actions-code"></textarea>
@@ -321,6 +329,205 @@ describe('showError / hideError', () => {
     document.getElementById('error-bar').className = 'visible';
     hideError();
     expect(document.getElementById('error-bar').className).toBe('');
+  });
+});
+
+describe('getRuleColor', () => {
+  beforeEach(() => setupDOM());
+
+  test('returns gray for TOP rule', () => {
+    expect(getRuleColor('TOP')).toBe('#6c7086');
+  });
+
+  test('returns consistent color for same rule name', () => {
+    const color1 = getRuleColor('vowel');
+    const color2 = getRuleColor('vowel');
+    expect(color1).toBe(color2);
+  });
+
+  test('returns different colors for different rule names', () => {
+    const color1 = getRuleColor('vowel');
+    const color2 = getRuleColor('consonant');
+    expect(color1).not.toBe(color2);
+  });
+});
+
+describe('renderStringColored / clearStringColored', () => {
+  beforeEach(() => setupDOM());
+
+  test('renders colored spans from trace tree', () => {
+    document.getElementById('string-input').value = 'hello';
+    const trace = {
+      rule: 'TOP', pos_start: 0, pos_end: 5, match: true,
+      children: [
+        { rule: 'letter', pos_start: 0, pos_end: 1, match: true, children: [
+          { rule: 'consonant', pos_start: 0, pos_end: 1, match: true }
+        ]},
+        { rule: 'letter', pos_start: 1, pos_end: 2, match: true, children: [
+          { rule: 'vowel', pos_start: 1, pos_end: 2, match: true }
+        ]},
+      ]
+    };
+    renderStringColored(trace);
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toContain('<span');
+    expect(output.innerHTML).toContain('color:');
+    expect(output.innerHTML).toContain('font-style:italic');
+    expect(output.textContent).toBe('hello');
+  });
+
+  test('clears output on clearStringColored', () => {
+    document.getElementById('string-input').value = 'test';
+    const trace = { rule: 'TOP', pos_start: 0, pos_end: 4, match: true };
+    renderStringColored(trace);
+    clearStringColored();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toBe('');
+  });
+
+  test('shows raw text when match is null', () => {
+    document.getElementById('string-input').value = 'hello';
+    renderStringColored(null);
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toBe('hello');
+    expect(output.innerHTML).not.toContain('<span');
+  });
+
+  test('handles empty string', () => {
+    document.getElementById('string-input').value = '';
+    const trace = { rule: 'TOP', pos_start: 0, pos_end: 0, match: false };
+    renderStringColored(trace);
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toBe('');
+  });
+
+  test('no errors when elements are missing', () => {
+    document.body.innerHTML = '';
+    expect(() => renderStringColored(null)).not.toThrow();
+    expect(() => clearStringColored()).not.toThrow();
+  });
+});
+
+describe('extendStringColoring', () => {
+  beforeEach(() => {
+    setupDOM();
+    document.getElementById('string-input').value = 'hello';
+    document.getElementById('string-colored-output').innerHTML =
+      '<span style="color:#4d9375;font-style:italic">h</span>' +
+      '<span style="color:#cb7676;font-style:italic">e</span>' +
+      '<span style="color:#c98a7d;font-style:italic">llo</span>';
+  });
+
+  test('extends with last span style when typing at end', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hellox';
+    ta.selectionStart = 6;
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toContain('<span style="color:#c98a7d;font-style:italic">llo</span>');
+    expect(output.innerHTML).toContain('<span style="color:#c98a7d;font-style:italic">x</span>');
+    expect(output.textContent).toBe('hellox');
+  });
+
+  test('trims last char on backspace at end, keeping colors', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hell';
+    ta.selectionStart = 4;
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.textContent).toBe('hell');
+    expect(output.innerHTML).toContain('<span');
+    expect(output.innerHTML).toContain('style="color:#c98a7d;font-style:italic"');
+  });
+
+  test('preserves existing coloring on deletion in middle', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hllo'; // deleted 'e' at position 1
+    ta.selectionStart = 1;
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    // text is shorter but cursor not at end — old spans stay unchanged
+    expect(output.textContent).toBe('hello');
+  });
+
+  test('does nothing when text unchanged', () => {
+    const ta = document.getElementById('string-input');
+    ta.value = 'hello';
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toContain('<span');
+    expect(output.textContent).toBe('hello');
+  });
+
+  test('handles empty textarea', () => {
+    document.getElementById('string-input').value = '';
+    extendStringColoring();
+    const output = document.getElementById('string-colored-output');
+    expect(output.innerHTML).toBe('');
+  });
+
+  test('no errors when elements missing', () => {
+    document.body.innerHTML = '';
+    expect(() => extendStringColoring()).not.toThrow();
+  });
+});
+
+describe('PALETTE_REGISTRY / getActivePalette / setActivePalette', () => {
+  beforeEach(() => {
+    setupDOM();
+    setActivePalette('Vitesse Dark');
+    resetColors();
+  });
+
+  test('registry has 12+ palettes', () => {
+    const names = Object.keys(PALETTE_REGISTRY);
+    expect(names.length).toBeGreaterThanOrEqual(12);
+  });
+
+  test('each palette has exactly 12 colors', () => {
+    Object.values(PALETTE_REGISTRY).forEach(entry => {
+      expect(entry.colors.length).toBe(12);
+    });
+  });
+
+  test('getActivePalette returns Vitesse Dark by default', () => {
+    expect(getActivePalette()).toBe('Vitesse Dark');
+  });
+
+  test('setActivePalette switches active palette', () => {
+    setActivePalette('Monokai');
+    expect(getActivePalette()).toBe('Monokai');
+  });
+
+  test('setActivePalette resets rule colors', () => {
+    const colorBefore = getRuleColor('vowel');
+    setActivePalette('Monokai');
+    const colorAfter = getRuleColor('vowel');
+    expect(colorBefore).not.toBe(colorAfter);
+  });
+
+  test('setActivePalette with unknown name does nothing', () => {
+    setActivePalette('NonExistent');
+    expect(getActivePalette()).toBe('Vitesse Dark');
+    expect(getRuleColor('vowel')).toBe(PALETTE_REGISTRY['Vitesse Dark'].colors[0]);
+  });
+
+  test('renderStringColored uses new palette after switch', () => {
+    document.getElementById('string-input').value = 'a';
+    renderStringColored({ rule: 'TOP', pos_start: 0, pos_end: 1, match: true, children: [
+      { rule: 'vowel', pos_start: 0, pos_end: 1, match: true }
+    ]});
+    const output1 = document.getElementById('string-colored-output');
+    const color1 = output1.innerHTML.match(/color:([^;]+)/)[1];
+
+    setActivePalette('Monokai');
+    renderStringColored({ rule: 'TOP', pos_start: 0, pos_end: 1, match: true, children: [
+      { rule: 'vowel', pos_start: 0, pos_end: 1, match: true }
+    ]});
+    const output2 = document.getElementById('string-colored-output');
+    const color2 = output2.innerHTML.match(/color:([^;]+)/)[1];
+
+    expect(color1).not.toBe(color2);
   });
 });
 
