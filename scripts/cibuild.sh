@@ -7,16 +7,20 @@ cmd_container () {
   tag_version="v1-$(date +%Y%m%d)-${GITHUB_RUN_NUMBER}"
 
   echo $QUAY_PASSWORD | docker login quay.io -u $QUAY_USERNAME --password-stdin
+
   full_tag="quay.io/librasteve/grammar-editor:${tag_version}"
   docker build --build-arg quay_expiration="8w" -t $full_tag .
-
-  # Also tag as "latest"
   latest_tag="quay.io/librasteve/grammar-editor:latest"
   docker tag $full_tag $latest_tag
-
-  # Push both tags
   docker push $full_tag
   docker push $latest_tag
+
+  worker_full_tag="quay.io/librasteve/grammar-worker:${tag_version}"
+  docker build --build-arg quay_expiration="8w" -f Dockerfile.worker -t $worker_full_tag .
+  worker_latest_tag="quay.io/librasteve/grammar-worker:latest"
+  docker tag $worker_full_tag $worker_latest_tag
+  docker push $worker_full_tag
+  docker push $worker_latest_tag
 }
 
 if [ -z $1 ]; then
