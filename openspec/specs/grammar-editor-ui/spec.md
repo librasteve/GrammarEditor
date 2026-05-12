@@ -2,6 +2,15 @@
 
 Define the UI behavior for the Raku Grammar Editor, including panel layout, syntax highlighting, WebSocket communication, trace/match display, sharing, and responsive mobile layout.
 ## Requirements
+### Requirement: Toolbar button order
+
+The toolbar SHALL display controls in the following left-to-right order: `DSL` button, `Input` toggle, `Grammar` toggle, `Actions` toggle, `Trace` toggle, `Match` toggle, `Made` toggle, `PRO` button, theme selector, spacer, `Share` button.
+
+#### Scenario: Toolbar renders in correct order
+
+- **WHEN** the page loads
+- **THEN** the toolbar controls appear left-to-right as: DSL | Input Grammar Actions Trace Match Made | PRO | Theme | Share
+
 ### Requirement: Four-panel layout
 
 The UI SHALL display four panels. On screens wider than 768px, the layout SHALL be a left-half/right-half layout with the grammar editor and input string on the left (top/bottom) and trace and match on the right (left/right). On screens 768px or narrower, the panels SHALL stack vertically in a single column in this order: grammar editor, input string, trace, match. Each panel SHALL have a minimum height of 200px on narrow screens. The grammar and actions editor panels SHALL render their full text content without clipping — the textarea and syntax-highlight `<pre>` SHALL fill the available panel body height on all viewport sizes.

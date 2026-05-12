@@ -604,6 +604,22 @@
 
     <div id="app">
         <div id="panel-toggles">
+            <button class="toolbar-btn" id="btn-dsl" title="DSL: show Input + Made only">DSL</button>
+            <label class="panel-toggle" data-panel="string">
+                <input type="checkbox" checked>
+                <span class="toggle-icon">👁</span>
+                <span>Input</span>
+            </label>
+            <label class="panel-toggle" data-panel="grammar">
+                <input type="checkbox" checked>
+                <span class="toggle-icon">👁</span>
+                <span>Grammar</span>
+            </label>
+            <label class="panel-toggle" data-panel="actions">
+                <input type="checkbox">
+                <span class="toggle-icon">👁</span>
+                <span>Actions</span>
+            </label>
             <label class="panel-toggle" data-panel="trace">
                 <input type="checkbox" checked>
                 <span class="toggle-icon">👁</span>
@@ -614,27 +630,11 @@
                 <span class="toggle-icon">👁</span>
                 <span>Match</span>
             </label>
-            <label class="panel-toggle" data-panel="grammar">
-                <input type="checkbox" checked>
-                <span class="toggle-icon">👁</span>
-                <span>Grammar</span>
-            </label>
-            <label class="panel-toggle" data-panel="string">
-                <input type="checkbox" checked>
-                <span class="toggle-icon">👁</span>
-                <span>Input</span>
-            </label>
-            <label class="panel-toggle" data-panel="actions">
-                <input type="checkbox">
-                <span class="toggle-icon">👁</span>
-                <span>Actions</span>
-            </label>
             <label class="panel-toggle" data-panel="made">
                 <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Made</span>
             </label>
-            <button class="toolbar-btn" id="btn-dsl" title="DSL: show Input + Made only">DSL</button>
             <button class="toolbar-btn" id="btn-pro" title="PRO: show all panels">PRO</button>
             <select id="theme-select" class="toolbar-btn" title="Select color theme"></select>
             <span class="toolbar-spacer"></span>
