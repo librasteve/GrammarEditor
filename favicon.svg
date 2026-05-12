@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Rounded square background -->
+  <rect width="64" height="64" rx="12" ry="12" fill="#8999f9"/>
+  <!-- Angle brackets framing the S -->
+  <text x="7" y="46" font-family="monospace,Courier New" font-size="30" font-weight="bold" fill="rgba(255,255,255,0.5)">&lt;</text>
+  <text x="44" y="46" font-family="monospace,Courier New" font-size="30" font-weight="bold" fill="rgba(255,255,255,0.5)">&gt;</text>
+  <!-- Central S -->
+  <text x="32" y="47" font-family="system-ui,sans-serif" font-size="34" font-weight="900" fill="white" text-anchor="middle">S</text>
+</svg>

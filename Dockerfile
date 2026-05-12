@@ -8,7 +8,7 @@ RUN zef install --/test Cro::HTTP Cro::WebSocket JSON::Fast Red
 WORKDIR /app
 COPY lib/ lib/
 COPY js/ js/
-COPY index.html server.raku ./
+COPY index.html server.raku favicon.ico favicon.svg favicon-32x32.png favicon-16x16.png ./
 
 EXPOSE 3001
 

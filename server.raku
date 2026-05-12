@@ -151,6 +151,12 @@ my $app = route {
     get -> 'js', *@path {
         static 'js', @path;
     }
+
+    # Favicon files
+    get -> 'favicon.ico'      { static 'favicon.ico' }
+    get -> 'favicon.svg'      { static 'favicon.svg' }
+    get -> 'favicon-32x32.png' { static 'favicon-32x32.png' }
+    get -> 'favicon-16x16.png' { static 'favicon-16x16.png' }
 }
 
 my $server = Cro::HTTP::Server.new(
