@@ -1961,13 +1961,31 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         // Resize Handles
         // ============================================================
         function makeResizeHandle(handleEl, prevEl, nextEl, direction) {
-            var startPos, startPrev, startNext;
+            var startPos, startPrev, startNext, combinedFlex;
 
             function onMouseDown(e) {
                 e.preventDefault();
+                // Normalize all visible siblings in this flex container to flex values
+                // summing to 1, so dragging two panels never shifts a third.
+                var container = prevEl.parentNode;
+                var siblings = Array.from(container.children).filter(function (el) {
+                    return !el.classList.contains('resize-handle') &&
+                           getComputedStyle(el).display !== 'none';
+                });
+                var totalSize = siblings.reduce(function (sum, el) {
+                    return sum + (direction === 'row' ? el.offsetHeight : el.offsetWidth);
+                }, 0);
+                if (totalSize > 0) {
+                    siblings.forEach(function (el) {
+                        var size = direction === 'row' ? el.offsetHeight : el.offsetWidth;
+                        el.style.flex = (size / totalSize).toFixed(6);
+                    });
+                }
                 startPos = direction === 'row' ? e.clientY : e.clientX;
                 startPrev = direction === 'row' ? prevEl.offsetHeight : prevEl.offsetWidth;
                 startNext = direction === 'row' ? nextEl.offsetHeight : nextEl.offsetWidth;
+                combinedFlex = (parseFloat(prevEl.style.flex) || 0) +
+                               (parseFloat(nextEl.style.flex) || 0);
                 handleEl.classList.add('resizing');
                 document.body.classList.add('resizing');
                 document.addEventListener('mousemove', onMouseMove);
@@ -1981,13 +1999,8 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
                 var prevRatio = (startPrev + delta) / total;
                 var nextRatio = (startNext - delta) / total;
                 if (prevRatio < 0.1 || nextRatio < 0.1) return;
-                if (direction === 'row') {
-                    prevEl.style.flex = prevRatio.toFixed(4);
-                    nextEl.style.flex = nextRatio.toFixed(4);
-                } else {
-                    prevEl.style.flex = prevRatio.toFixed(4);
-                    nextEl.style.flex = nextRatio.toFixed(4);
-                }
+                prevEl.style.flex = (prevRatio * combinedFlex).toFixed(6);
+                nextEl.style.flex = (nextRatio * combinedFlex).toFixed(6);
             }
 
             function onMouseUp() {
