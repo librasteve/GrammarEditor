@@ -1,3 +1,5 @@
+[![Build and Test](https://github.com/librasteve/GrammarEditor/actions/workflows/ci.yml/badge.svg)](https://github.com/librasteve/GrammarEditor/actions/workflows/ci.yml)
+
 # Raku Grammar Editor
 
 A web-based interactive grammar editor for Raku grammars with live syntax highlighting, trace visualization, and match inspection.
