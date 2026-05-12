@@ -1621,7 +1621,8 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             var madef = getFlex(made);
             if (madef != null) sizes.made = madef;
 
-            return { panelVisibility: vis, panelSizes: sizes };
+            var toggles = document.getElementById('panel-toggles');
+            return { panelVisibility: vis, panelSizes: sizes, mode: toggles && toggles.classList.contains('dsl-mode') ? 'dsl' : 'pro' };
         }
 
         function sortJsonKeys(key, val) {
@@ -1744,7 +1745,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
 
             updateRightHalf();
             setupResizeHandles();
-            setViewMode('pro');
+            setViewMode(state.mode || 'pro');
         }
 
         // ============================================================
