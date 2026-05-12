@@ -11,10 +11,6 @@ services:
       - grammar-snapshots:/data
     depends_on:
       - worker
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
     restart: unless-stopped
 
   worker:
@@ -24,19 +20,9 @@ services:
     container_name: grammar-worker
     expose:
       - "9000"
-    mem_limit: 1g
-    memswap_limit: 1g
-    cpus: "1.0"
-    pids_limit: 50
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
+    mem_limit: 8182m
     environment:
-      GRAMMAR_WORKER_TIMEOUT: "30"
+      GRAMMAR_WORKER_TIMEOUT: "5"
     restart: unless-stopped
 
 volumes:
