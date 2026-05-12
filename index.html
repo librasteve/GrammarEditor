@@ -2038,7 +2038,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             // Between right top row and made panel
             var rightTopRow = document.getElementById('right-top-row');
             var madePanel = document.getElementById('made-panel');
-            if (rightTopRow && madePanel && !madePanel.classList.contains('collapsed')) {
+            if (rightTopRow && madePanel && !madePanel.classList.contains('collapsed') && rightTopRow.style.display !== 'none') {
                 insertResizeHandle(rightTopRow, madePanel, 'row');
             }
         }
