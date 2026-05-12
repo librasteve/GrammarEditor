@@ -614,32 +614,32 @@
     <div id="app">
         <div id="panel-toggles" class="dsl-mode">
             <button class="toolbar-btn active" id="btn-dsl" title="DSL: show Input + Made only">DSL</button>
-            <label class="panel-toggle" data-panel="string">
+            <label class="panel-toggle" data-panel="string" style="display:none">
                 <input type="checkbox" checked>
                 <span class="toggle-icon">👁</span>
                 <span>Input</span>
             </label>
-            <label class="panel-toggle" data-panel="grammar">
+            <label class="panel-toggle" data-panel="grammar" style="display:none">
                 <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Grammar</span>
             </label>
-            <label class="panel-toggle" data-panel="actions">
+            <label class="panel-toggle" data-panel="actions" style="display:none">
                 <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Actions</span>
             </label>
-            <label class="panel-toggle" data-panel="trace">
+            <label class="panel-toggle" data-panel="trace" style="display:none">
                 <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Trace</span>
             </label>
-            <label class="panel-toggle" data-panel="match">
+            <label class="panel-toggle" data-panel="match" style="display:none">
                 <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Match</span>
             </label>
-            <label class="panel-toggle" data-panel="made">
+            <label class="panel-toggle" data-panel="made" style="display:none">
                 <input type="checkbox" checked>
                 <span class="toggle-icon">👁</span>
                 <span>Made</span>
@@ -1884,6 +1884,9 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             toggles.classList.toggle('dsl-mode', isDsl);
             dsl.classList.toggle('active', isDsl);
             pro.classList.toggle('active', !isDsl);
+            document.querySelectorAll('.panel-toggle').forEach(function (el) {
+                el.style.display = isDsl ? 'none' : '';
+            });
         }
 
         document.getElementById('btn-dsl').addEventListener('click', function () {
