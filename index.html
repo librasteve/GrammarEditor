@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slangify Playground</title>
+    <title>DSL Playground</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -1823,7 +1823,6 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
 
         // Panel toggles
         function updateRightHalf() {
-            setupResizeHandles();
             var trace = document.getElementById('trace-panel');
             var match = document.getElementById('match-panel');
             var made = document.getElementById('made-panel');
@@ -1839,28 +1838,29 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             if (anyVisible === 0) {
                 rightHalf.classList.add('hidden');
                 leftHalf.style.flex = '1';
-                return;
-            }
-            rightHalf.classList.remove('hidden');
-            rightHalf.style.flex = '1';
-            leftHalf.style.flex = '1';
-
-            var topVisible = 0;
-            if (!trace.classList.contains('collapsed')) topVisible++;
-            if (!match.classList.contains('collapsed')) topVisible++;
-
-            if (topVisible === 0) {
-                rightTopRow.style.display = 'none';
-                made.style.flex = '1';
             } else {
-                rightTopRow.style.display = '';
-                made.style.flex = '';
-                if (topVisible === 1) {
-                    rightTopRow.classList.add('single');
+                rightHalf.classList.remove('hidden');
+                rightHalf.style.flex = '1';
+                leftHalf.style.flex = '1';
+
+                var topVisible = 0;
+                if (!trace.classList.contains('collapsed')) topVisible++;
+                if (!match.classList.contains('collapsed')) topVisible++;
+
+                if (topVisible === 0) {
+                    rightTopRow.style.display = 'none';
+                    made.style.flex = '1';
                 } else {
-                    rightTopRow.classList.remove('single');
+                    rightTopRow.style.display = '';
+                    made.style.flex = '';
+                    if (topVisible === 1) {
+                        rightTopRow.classList.add('single');
+                    } else {
+                        rightTopRow.classList.remove('single');
+                    }
                 }
             }
+            setupResizeHandles();
         }
 
         document.querySelectorAll('.panel-toggle input').forEach(function (cb) {
