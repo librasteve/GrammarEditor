@@ -41,6 +41,10 @@
             gap: 2px;
         }
 
+        #panel-area.dsl-layout {
+            flex-direction: column;
+        }
+
         #left-half {
             flex: 1;
             min-width: 0;
@@ -649,7 +653,7 @@
             <select id="theme-select" class="toolbar-btn" title="Select color theme"></select>
             <button class="toolbar-btn" id="btn-share" title="Copy shareable URL">🔗 Share</button>
         </div>
-        <div id="panel-area">
+        <div id="panel-area" class="dsl-layout">
             <div id="left-half">
                 <div class="panel collapsed" id="grammar-panel">
                     <div class="panel-header">
@@ -1879,11 +1883,13 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             var toggles = document.getElementById('panel-toggles');
             var dsl = document.getElementById('btn-dsl');
             var pro = document.getElementById('btn-pro');
+            var panelArea = document.getElementById('panel-area');
             if (!toggles || !dsl || !pro) return;
             var isDsl = (mode === 'dsl');
             toggles.classList.toggle('dsl-mode', isDsl);
             dsl.classList.toggle('active', isDsl);
             pro.classList.toggle('active', !isDsl);
+            if (panelArea) panelArea.classList.toggle('dsl-layout', isDsl);
             document.querySelectorAll('.panel-toggle').forEach(function (el) {
                 el.style.display = isDsl ? 'none' : '';
             });
