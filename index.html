@@ -159,6 +159,11 @@
             color: #a6e3a1;
         }
 
+        .toolbar-btn.active {
+            background: #313244;
+            color: #cdd6f4;
+        }
+
         .toolbar-btn.disabled {
             opacity: 0.35;
             cursor: default;
@@ -207,6 +212,10 @@
             background: #181825;
             border-bottom: 1px solid #313244;
             flex-shrink: 0;
+        }
+
+        #panel-toggles.dsl-mode .panel-toggle {
+            display: none;
         }
 
         .panel-toggle {
@@ -603,15 +612,15 @@
 <body>
 
     <div id="app">
-        <div id="panel-toggles">
-            <button class="toolbar-btn" id="btn-dsl" title="DSL: show Input + Made only">DSL</button>
+        <div id="panel-toggles" class="dsl-mode">
+            <button class="toolbar-btn active" id="btn-dsl" title="DSL: show Input + Made only">DSL</button>
             <label class="panel-toggle" data-panel="string">
                 <input type="checkbox" checked>
                 <span class="toggle-icon">👁</span>
                 <span>Input</span>
             </label>
             <label class="panel-toggle" data-panel="grammar">
-                <input type="checkbox" checked>
+                <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Grammar</span>
             </label>
@@ -621,23 +630,23 @@
                 <span>Actions</span>
             </label>
             <label class="panel-toggle" data-panel="trace">
-                <input type="checkbox" checked>
+                <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Trace</span>
             </label>
             <label class="panel-toggle" data-panel="match">
-                <input type="checkbox" checked>
+                <input type="checkbox">
                 <span class="toggle-icon">👁</span>
                 <span>Match</span>
             </label>
             <label class="panel-toggle" data-panel="made">
-                <input type="checkbox">
+                <input type="checkbox" checked>
                 <span class="toggle-icon">👁</span>
                 <span>Made</span>
             </label>
             <button class="toolbar-btn" id="btn-pro" title="PRO: show all panels">PRO</button>
-            <select id="theme-select" class="toolbar-btn" title="Select color theme"></select>
             <span class="toolbar-spacer"></span>
+            <select id="theme-select" class="toolbar-btn" title="Select color theme"></select>
             <button class="toolbar-btn" id="btn-share" title="Copy shareable URL">🔗 Share</button>
         </div>
         <div id="panel-area">
@@ -1731,7 +1740,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
 
             updateRightHalf();
             setupResizeHandles();
-            updateViewModeButtons();
+            setViewMode('pro');
         }
 
         // ============================================================
@@ -1857,7 +1866,6 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
                 if (panel) {
                     panel.classList.toggle('collapsed', !this.checked);
                     updateRightHalf();
-                    updateViewModeButtons();
                 }
             });
         });
@@ -1867,25 +1875,19 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             return !el || el.classList.contains('collapsed');
         }
 
-        function updateViewModeButtons() {
+        function setViewMode(mode) {
+            var toggles = document.getElementById('panel-toggles');
             var dsl = document.getElementById('btn-dsl');
             var pro = document.getElementById('btn-pro');
-            if (!dsl || !pro) return;
-
-            var dslActive = isPanelCollapsed('grammar') && isPanelCollapsed('actions') &&
-                isPanelCollapsed('trace') && isPanelCollapsed('match') &&
-                !isPanelCollapsed('string') && !isPanelCollapsed('made');
-
-            var proActive = !isPanelCollapsed('grammar') && !isPanelCollapsed('actions') &&
-                !isPanelCollapsed('trace') && !isPanelCollapsed('match') &&
-                !isPanelCollapsed('string') && !isPanelCollapsed('made');
-
-            dsl.classList.toggle('disabled', dslActive);
-            pro.classList.toggle('disabled', proActive);
+            if (!toggles || !dsl || !pro) return;
+            var isDsl = (mode === 'dsl');
+            toggles.classList.toggle('dsl-mode', isDsl);
+            dsl.classList.toggle('active', isDsl);
+            pro.classList.toggle('active', !isDsl);
         }
 
         document.getElementById('btn-dsl').addEventListener('click', function () {
-            if (this.classList.contains('disabled')) return;
+            if (this.classList.contains('active')) return;
             resetPanelSizes();
             setPanel('grammar', false);
             setPanel('actions', false);
@@ -1894,11 +1896,11 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             setPanel('string', true);
             setPanel('made', true);
             updateRightHalf();
-            updateViewModeButtons();
+            setViewMode('dsl');
         });
 
         document.getElementById('btn-pro').addEventListener('click', function () {
-            if (this.classList.contains('disabled')) return;
+            if (this.classList.contains('active')) return;
             resetPanelSizes();
             setPanel('grammar', true);
             setPanel('actions', true);
@@ -1907,7 +1909,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
             setPanel('string', true);
             setPanel('made', true);
             updateRightHalf();
-            updateViewModeButtons();
+            setViewMode('pro');
         });
 
         function resetPanelSizes() {
@@ -2070,7 +2072,7 @@ token consonant { <[bcdfghjklmnpqrstvwxyz]> }`;
         document.addEventListener('DOMContentLoaded', () => {
             connectWS();
             setupResizeHandles();
-            updateViewModeButtons();
+            setViewMode('dsl');
             // Initial send after a small delay for WS to connect
             setTimeout(sendGrammar, 500);
         });

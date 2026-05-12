@@ -2,14 +2,39 @@
 
 Define the UI behavior for the Raku Grammar Editor, including panel layout, syntax highlighting, WebSocket communication, trace/match display, sharing, and responsive mobile layout.
 ## Requirements
-### Requirement: Toolbar button order
+### Requirement: Toolbar button order and view modes
 
-The toolbar SHALL display controls in the following left-to-right order: `DSL` button, `Input` toggle, `Grammar` toggle, `Actions` toggle, `Trace` toggle, `Match` toggle, `Made` toggle, `PRO` button, theme selector, spacer, `Share` button.
+The toolbar SHALL have two exclusive view-mode buttons: `DSL` and `PRO`. Only one SHALL be active at a time, indicated by a highlighted active state. The default mode on page load SHALL be DSL.
 
-#### Scenario: Toolbar renders in correct order
+In DSL mode the panel toggles (Input, Grammar, Actions, Trace, Match, Made) SHALL be hidden. The toolbar SHALL show: `DSL | PRO | spacer | Theme | Share`.
+
+In PRO mode the panel toggles SHALL be visible between the two mode buttons. The toolbar SHALL show: `DSL | Input Grammar Actions Trace Match Made | PRO | spacer | Theme | Share`.
+
+#### Scenario: Toolbar renders in DSL mode on load
 
 - **WHEN** the page loads
-- **THEN** the toolbar controls appear left-to-right as: DSL | Input Grammar Actions Trace Match Made | PRO | Theme | Share
+- **THEN** `DSL` is highlighted as active, `PRO` is inactive
+- **AND** the panel toggles are hidden
+- **AND** the toolbar shows: DSL | PRO | spacer | Theme | Share
+
+#### Scenario: Clicking PRO shows toggles
+
+- **WHEN** the user clicks `PRO`
+- **THEN** `PRO` becomes highlighted, `DSL` becomes inactive
+- **AND** the panel toggles become visible
+- **AND** all panels are shown
+
+#### Scenario: Clicking DSL hides toggles
+
+- **WHEN** the user clicks `DSL`
+- **THEN** `DSL` becomes highlighted, `PRO` becomes inactive
+- **AND** the panel toggles are hidden
+- **AND** only Input and Made panels are shown
+
+#### Scenario: Clicking the active mode button does nothing
+
+- **WHEN** the user clicks the already-active mode button
+- **THEN** no change occurs
 
 ### Requirement: Four-panel layout
 
