@@ -3,8 +3,7 @@ FROM rakudo-star:latest
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libssl-dev libpq-dev \
     && rm -rf /var/lib/apt/lists/*
-RUN zef install --/test Cro::HTTP Cro::WebSocket JSON::Fast Red Actionable FStrings Form Grammar::HTTP
-RUN zef install --/test 'Contact:ver<0.0.2>'
+RUN zef install --/test Cro::HTTP Cro::WebSocket JSON::Fast Red Actionable FStrings Form Grammar::HTTP Contact
 
 WORKDIR /app
 COPY lib/ lib/
