@@ -1,2 +1,11 @@
+.DS_Store
 .precomp
-node_modules
+.lib/precomp
+*.swp
+.ipynb_checkpoints/*
+.log
+.pem
+.idea/
+*.iml
+static/css/node_modules/
+.cache/

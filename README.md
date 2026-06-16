@@ -53,3 +53,7 @@ The editor has four panels:
 ├── package.json     JS dependencies (Vitest)
 └── vitest.config.js Vitest configuration
 ```
+
+## Docker Images
+
+Note: each time you commit to main, the CI script builds new Docker images and pushes them to [quay.io/librasteve/grammar-editor](https://quay.io/repository/librasteve/grammar-editor) and [quay.io/librasteve/grammar-worker](https://quay.io/repository/librasteve/grammar-worker) - you may wish to prune older versions from time to time.
